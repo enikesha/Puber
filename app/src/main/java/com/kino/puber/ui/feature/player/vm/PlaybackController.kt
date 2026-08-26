@@ -23,7 +23,6 @@ import androidx.media3.exoplayer.source.BehindLiveWindowException
 import androidx.media3.extractor.DefaultExtractorsFactory
 import okhttp3.OkHttpClient
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.trackselection.AdaptiveTrackSelection
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
@@ -35,11 +34,16 @@ import com.kino.puber.data.repository.PlayerPreferencesRepository
 import com.kino.puber.ui.feature.player.model.AudioTrackUIState
 import com.kino.puber.ui.feature.player.model.BufferPreset
 import com.kino.puber.ui.feature.player.model.SubtitleTrackUIState
+import com.kino.puber.ui.feature.player.model.isOff
 import java.util.Locale
 
 internal interface PlaybackControl {
     interface Callback : PlaybackEventSink {
-        fun onTracksUpdated(audioTracks: List<AudioTrackUIState>, selectedIndex: Int)
+        fun onTracksUpdated(
+            audioTracks: List<AudioTrackUIState>,
+            selectedIndex: Int,
+            subtitleTracks: List<SubtitleTrackUIState> = emptyList(),
+        )
         fun onError(message: String)
     }
 
@@ -291,7 +295,7 @@ internal class PlaybackController(
 
     override fun selectSubtitle(track: SubtitleTrackUIState?) {
         val player = exoPlayer ?: return
-        if (track == null || track.url.isEmpty()) {
+        if (track == null || track.isOff) {
             pendingSubtitleTrack = null
             player.trackSelectionParameters = player.trackSelectionParameters
                 .buildUpon()
@@ -339,17 +343,24 @@ internal class PlaybackController(
 
     private fun buildMediaItem(streamUrl: String, subtitles: List<SubtitleLink>?): MediaItem {
         val builder = MediaItem.Builder().setUri(streamUrl)
+        if (streamUrl.isHlsStreamUrl()) {
+            builder.setMimeType(MimeTypes.APPLICATION_M3U8)
+        }
         if (!subtitles.isNullOrEmpty()) {
-            val subtitleConfigs = subtitles.map { sub ->
-                val stableKey = sub.url.stableSubtitleKey()
-                MediaItem.SubtitleConfiguration.Builder(sub.url.toUri())
-                    .setMimeType(subtitleMimeType(sub.url))
+            val subtitleConfigs = subtitles.mapNotNull { sub ->
+                if (!sub.shouldSideLoad) return@mapNotNull null
+                val subtitleUrl = sub.url
+                val stableKey = subtitleUrl.stableSubtitleKey()
+                MediaItem.SubtitleConfiguration.Builder(subtitleUrl.toUri())
+                    .setMimeType(subtitleMimeType(subtitleUrl))
                     .setLanguage(sub.lang)
                     .setLabel(stableKey)
                     .setId(stableKey)
                     .build()
             }
-            builder.setSubtitleConfigurations(subtitleConfigs)
+            if (subtitleConfigs.isNotEmpty()) {
+                builder.setSubtitleConfigurations(subtitleConfigs)
+            }
         }
         return builder.build()
     }
@@ -387,9 +398,10 @@ internal class PlaybackController(
     @OptIn(UnstableApi::class)
     private fun setMediaSource(player: ExoPlayer, mediaItem: MediaItem, streamUrl: String) {
         val dsFactory = dataSourceFactory ?: return
-        if (streamUrl.contains(".m3u8") || streamUrl.contains("hls")) {
-            val hlsSource = HlsMediaSource.Factory(dsFactory)
-                .setAllowChunklessPreparation(true)
+        if (streamUrl.isHlsStreamUrl()) {
+            // DefaultMediaSourceFactory merges MediaItem subtitle configurations with the HLS source.
+            // Creating HlsMediaSource directly silently drops every side-loaded subtitle configuration.
+            val hlsSource = createMediaSourceFactory(dsFactory)
                 .setLoadErrorHandlingPolicy(HlsErrorPolicy())
                 .createMediaSource(mediaItem)
             player.setMediaSource(hlsSource)
@@ -533,8 +545,6 @@ internal class PlaybackController(
     private fun notifyTracksUpdated() {
         val player = exoPlayer ?: return
         val audioGroups = player.currentTracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
-        if (audioGroups.isEmpty()) return
-
         val audioTracks = audioGroups.mapIndexed { index, group ->
             val format = group.getTrackFormat(0)
             val label = format.label ?: format.language ?: "Track ${index + 1}"
@@ -545,7 +555,29 @@ internal class PlaybackController(
             )
         }
         val selectedIndex = audioGroups.indexOfFirst { it.isSelected }.coerceAtLeast(0)
-        callback?.onTracksUpdated(audioTracks, selectedIndex)
+        var subtitleIndex = 0
+        val subtitleTracks = player.currentTracks.groups
+            .filter { it.type == C.TRACK_TYPE_TEXT }
+            .flatMapIndexed { groupIndex, group ->
+                (0 until group.length).map { trackIndex ->
+                    val format = group.getTrackFormat(trackIndex)
+                    subtitleIndex += 1
+                    SubtitleTrackUIState(
+                        index = subtitleIndex,
+                        label = format.label
+                            ?: format.language
+                            ?: context.getString(R.string.player_subtitle_unknown, subtitleIndex),
+                        language = format.language.orEmpty(),
+                        url = "",
+                        isEmbedded = true,
+                        isForced = format.selectionFlags and C.SELECTION_FLAG_FORCED != 0,
+                        playerTrackId = format.id,
+                        playerGroupIndex = groupIndex,
+                        playerTrackIndex = trackIndex,
+                    )
+                }
+            }
+        callback?.onTracksUpdated(audioTracks, selectedIndex, subtitleTracks)
     }
 
     private fun applyPendingSubtitleSelection() {
@@ -576,11 +608,29 @@ internal class PlaybackController(
         textGroups: List<Tracks.Group>,
     ): TextTrackSelection? {
         return findTextTrackBy(textGroups) { format ->
-            format.id == track.url
+            track.url.isNotEmpty() && format.id == track.url
         } ?: findTextTrackBy(textGroups) { format ->
-            format.id == stableKey || format.label == stableKey
-        } ?: findTextTrackBySubtitleIndex(textGroups, track.index)
-        ?: findUnambiguousTextTrackByLanguage(textGroups, track.language)
+            track.playerTrackId != null && format.id == track.playerTrackId
+        } ?: findTextTrackBy(textGroups) { format ->
+            stableKey.isNotEmpty() && (format.id == stableKey || format.label == stableKey)
+        } ?: findUnambiguousTextTrackByLanguage(textGroups, track.language)
+        ?: findTextTrackByPlayerCoordinates(textGroups, track)
+        ?: track.takeUnless { it.isEmbedded }?.let {
+            findTextTrackBySubtitleIndex(textGroups, it.index)
+        }
+    }
+
+    private fun findTextTrackByPlayerCoordinates(
+        textGroups: List<Tracks.Group>,
+        track: SubtitleTrackUIState,
+    ): TextTrackSelection? {
+        val group = track.playerGroupIndex?.let(textGroups::getOrNull)
+        val trackIndex = track.playerTrackIndex
+        return if (group != null && trackIndex != null && trackIndex in 0 until group.length) {
+            TextTrackSelection(group = group, trackIndex = trackIndex)
+        } else {
+            null
+        }
     }
 
     // Media3 may not expose SubtitleConfiguration id/label for every source type.
@@ -608,7 +658,7 @@ internal class PlaybackController(
         val matches = textGroups.flatMap { group ->
             (0 until group.length).mapNotNull { trackIndex ->
                 group.getTrackFormat(trackIndex).takeIf { format ->
-                    format.language == language
+                    format.language?.let { sameSubtitleLanguage(it, language) } == true
                 }?.let {
                     TextTrackSelection(group = group, trackIndex = trackIndex)
                 }
@@ -643,4 +693,8 @@ internal class PlaybackController(
         const val PLAYER_NETWORK_TIMEOUT_SECONDS = 20L
         const val BITS_PER_MEGABIT = 1_000_000.0
     }
+}
+
+private fun String.isHlsStreamUrl(): Boolean {
+    return contains(".m3u8", ignoreCase = true) || contains("hls", ignoreCase = true)
 }

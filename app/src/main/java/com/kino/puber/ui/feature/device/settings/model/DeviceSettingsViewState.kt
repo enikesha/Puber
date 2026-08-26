@@ -10,6 +10,10 @@ internal data class DeviceSettingsViewState(
     val state: DeviceSettingsState = DeviceSettingsState.Loading,
     val apiDomain: ApiDomainDialogState,
     val isApiDomainDialogOpen: Boolean = false,
+    val isMyShowsDialogOpen: Boolean = false,
+    val isMyShowsRequestInProgress: Boolean = false,
+    val myShowsPairingUrl: String? = null,
+    val isMyShowsPairingUnavailable: Boolean = false,
 )
 
 @Immutable
@@ -36,5 +40,8 @@ internal sealed interface DeviceSettingsState {
         val showAnimeTab: Boolean = false,
         val showAnime: Boolean = true,
         val autoUpdateCheckEnabled: Boolean = true,
+        val isMyShowsConnected: Boolean = false,
+        val isMyShowsSyncEnabled: Boolean = false,
+        val myShowsApiStatusText: String? = null,
     ) : DeviceSettingsState
 }

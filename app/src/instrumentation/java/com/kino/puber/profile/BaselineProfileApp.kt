@@ -90,6 +90,13 @@ private object SyntheticAuthPreferences : ICryptoPreferenceRepository {
     override fun saveApiDomain(domain: String?) = Unit
 
     override fun getApiDomain(): String? = null
+
+    override fun saveMyShowsToken(token: String) = Unit
+
+    // The harness stays offline, so MyShows is always reported as unconnected.
+    override fun getMyShowsToken(): String? = null
+
+    override fun clearMyShowsToken() = Unit
 }
 
 private object NoOpAppUpdateInteractor : IAppUpdateInteractor {

@@ -135,6 +135,9 @@ android {
                 // 4. Fallback: debug signing (allows build without release keys)
                 else -> {
                     storeFile = file("debug.jks")
+                    storePassword = "android"
+                    keyAlias = "androiddebugkey"
+                    keyPassword = "android"
                 }
             }
         }
@@ -280,6 +283,7 @@ dependencies {
     implementation(libs.kotlinx.datetime)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.zxing.core)
 
     //navigation
     implementation(libs.voyager.navigator)

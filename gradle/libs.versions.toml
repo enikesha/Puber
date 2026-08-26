@@ -16,6 +16,7 @@ ktor = "3.4.3"
 kotlinxSerialization = "1.11.0"
 kotlinxDatetime = "0.7.1"
 coroutines = "1.10.2"
+zxing = "3.5.4"
 timber = "5.0.1"
 junit = "4.13.2"
 junit5 = "5.14.2"
@@ -90,6 +91,7 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
 # voyager
 voyager-navigator = { group = "cafe.adriel.voyager", name = "voyager-navigator", version.ref = "voyager" }

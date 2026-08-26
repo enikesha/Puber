@@ -14,4 +14,7 @@ interface ICryptoPreferenceRepository {
     fun getAndroidId(): String?
     fun saveApiDomain(domain: String?)
     fun getApiDomain(): String?
+    fun saveMyShowsToken(token: String)
+    fun getMyShowsToken(): String?
+    fun clearMyShowsToken()
 }

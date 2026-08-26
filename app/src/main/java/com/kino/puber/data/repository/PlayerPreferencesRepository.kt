@@ -1,6 +1,7 @@
 package com.kino.puber.data.repository
 
 import android.content.Context
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.domain.model.SubtitleSize
 import com.kino.puber.ui.feature.player.model.BufferPreset
 
@@ -108,6 +109,16 @@ class PlayerPreferencesRepository(context: Context) {
         get() = prefs.getBoolean(KEY_HAGC_PLAYBACK_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_HAGC_PLAYBACK_ENABLED, value).apply()
 
+    var bluetoothAudioDelay: BluetoothAudioDelay
+        get() = BluetoothAudioDelay.fromMilliseconds(
+            prefs.getInt(KEY_BLUETOOTH_AUDIO_DELAY_MS, BluetoothAudioDelay.OFF.milliseconds)
+        )
+        set(value) = prefs.edit().putInt(KEY_BLUETOOTH_AUDIO_DELAY_MS, value.milliseconds).apply()
+
+    var bluetoothSyncControlsEnabled: Boolean
+        get() = prefs.getBoolean(KEY_BLUETOOTH_SYNC_CONTROLS_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_BLUETOOTH_SYNC_CONTROLS_ENABLED, value).apply()
+
     private companion object {
         const val PREFS_NAME = "player_preferences"
         const val KEY_AUDIO_LANG_PREFIX = "audio_lang_"
@@ -125,5 +136,7 @@ class PlayerPreferencesRepository(context: Context) {
         const val KEY_WATCHED_INDICATORS = "watched_indicators_enabled"
         const val KEY_DISCARD_EMBEDDED_ARTWORK_METADATA = "discard_embedded_artwork_metadata"
         const val KEY_HAGC_PLAYBACK_ENABLED = "hagc_playback_enabled"
+        const val KEY_BLUETOOTH_AUDIO_DELAY_MS = "bluetooth_audio_delay_ms"
+        const val KEY_BLUETOOTH_SYNC_CONTROLS_ENABLED = "bluetooth_sync_controls_enabled"
     }
 }

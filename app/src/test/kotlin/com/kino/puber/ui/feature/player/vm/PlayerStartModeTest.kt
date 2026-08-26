@@ -7,6 +7,7 @@ import com.kino.puber.data.api.models.ItemType
 import com.kino.puber.domain.interactor.player.PlayerInteractor
 import com.kino.puber.domain.interactor.player.ResolvedMedia
 import com.kino.puber.domain.interactor.player.SkipSegmentInteractor
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.domain.model.SubtitleSize
 import com.kino.puber.ui.ScreensImpl
 import com.kino.puber.ui.feature.player.model.BufferPreset
@@ -80,6 +81,9 @@ internal class PlayerStartModeTest {
             every { currentPosition } returns 0L
             every { duration } returns 2_400_000L
             every { bufferedPosition } returns 0L
+            every { bluetoothAudioDelay } returns BluetoothAudioDelay.OFF
+            every { bluetoothSyncControlsEnabled } returns true
+            every { isBluetoothOutputConnected } returns true
         }
         contentState = mockk(relaxed = true)
 

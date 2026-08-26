@@ -18,6 +18,7 @@ internal sealed class DeviceSettingsActions : UIAction {
     data object ToggleWatchedIndicators : DeviceSettingsActions()
     data object ToggleDiscardEmbeddedArtworkMetadata : DeviceSettingsActions()
     data object ToggleHagcPlayback : DeviceSettingsActions()
+    data object ToggleBluetoothSyncControls : DeviceSettingsActions()
     data class ChangeNavigationMode(val mode: NavigationMode) : DeviceSettingsActions()
     data object ToggleCartoonsTab : DeviceSettingsActions()
     data object ToggleAnimeTab : DeviceSettingsActions()

@@ -10,6 +10,7 @@ import com.kino.puber.core.ui.navigation.AppRouter
 import com.kino.puber.core.ui.uikit.model.ApiDomainDialogState
 import com.kino.puber.core.ui.uikit.model.CommonAction
 import com.kino.puber.core.ui.uikit.model.UIAction
+import com.kino.puber.data.api.models.MyShowsCheckResult
 import com.kino.puber.data.preferences.NavigationPreferencesRepository
 import com.kino.puber.data.repository.PlayerPreferencesRepository
 import com.kino.puber.domain.interactor.api.ApiDomainDetectionResult
@@ -19,6 +20,7 @@ import com.kino.puber.domain.interactor.api.ApiDomainUpdateResult
 import com.kino.puber.domain.interactor.device.DeviceSettingType
 import com.kino.puber.domain.interactor.device.IDeviceInfoInteractor
 import com.kino.puber.domain.interactor.device.IDeviceSettingInteractor
+import com.kino.puber.domain.interactor.myshows.IMyShowsSyncInteractor
 import com.kino.puber.domain.interactor.update.IAppUpdateInteractor
 import com.kino.puber.ui.feature.device.settings.mappers.DeviceCapabilities
 import com.kino.puber.ui.feature.device.settings.mappers.DeviceUiSettingsMapper
@@ -37,10 +39,13 @@ internal class DeviceSettingsVM(
     private val navigationPreferencesRepository: NavigationPreferencesRepository,
     private val apiDomainInteractor: ApiDomainInteractor,
     private val appUpdateInteractor: IAppUpdateInteractor,
+    private val myShowsSyncInteractor: IMyShowsSyncInteractor,
     override val errorHandler: ErrorHandler,
     private val resources: ResourceProvider,
     router: AppRouter,
 ) : PuberVM<DeviceSettingsViewState>(router) {
+
+    private var hasRequestedMyShowsApiStatus = false
 
     private val capabilities by lazy {
         DeviceCapabilities(
@@ -64,6 +69,10 @@ internal class DeviceSettingsVM(
                 if (currentDevice.isSuccess) {
                     val device = currentDevice.getOrThrow()
                     val contentPreferences = navigationPreferencesRepository.contentPreferences.value
+                    val myShowsSettings = myShowsSyncInteractor.getSettings()
+                    val previousSuccess = stateValue.state as? DeviceSettingsState.Success
+                    val shouldCheckMyShows = myShowsSettings.isConnected &&
+                        !hasRequestedMyShowsApiStatus
                     updateViewState(
                         stateValue.copy(
                             state = DeviceSettingsState.Success(
@@ -86,9 +95,22 @@ internal class DeviceSettingsVM(
                                 showAnimeTab = contentPreferences.showAnimeTab,
                                 showAnime = contentPreferences.showAnime,
                                 autoUpdateCheckEnabled = appUpdateInteractor.isAutoCheckEnabled(),
+                                isMyShowsConnected = myShowsSettings.isConnected,
+                                isMyShowsSyncEnabled = myShowsSettings.isSyncEnabled,
+                                myShowsApiStatusText = when {
+                                    !myShowsSettings.isConnected -> null
+                                    previousSuccess?.myShowsApiStatusText != null ->
+                                        previousSuccess.myShowsApiStatusText
+                                    shouldCheckMyShows -> resources.getString(R.string.myshows_api_checking)
+                                    else -> null
+                                },
                             )
                         )
                     )
+                    if (shouldCheckMyShows) {
+                        hasRequestedMyShowsApiStatus = true
+                        validateMyShowsConnection(showResultMessage = false, showDialogProgress = false)
+                    }
                 } else {
                     throw IllegalStateException(currentDevice.exceptionOrNull())
                 }
@@ -124,6 +146,12 @@ internal class DeviceSettingsVM(
             is DeviceSettingsActions.SaveApiDomain -> saveApiDomain(action.domain)
             DeviceSettingsActions.DetectApiDomain -> detectApiDomain()
             DeviceSettingsActions.ResetApiDomain -> resetApiDomain()
+            DeviceSettingsActions.OpenMyShowsDialog -> openMyShowsDialog()
+            DeviceSettingsActions.CloseMyShowsDialog -> closeMyShowsDialog()
+            is DeviceSettingsActions.ConnectMyShows -> connectMyShows(action.token)
+            DeviceSettingsActions.ValidateMyShowsConnection -> validateMyShowsConnection()
+            DeviceSettingsActions.DisconnectMyShows -> disconnectMyShows()
+            DeviceSettingsActions.ToggleMyShowsSync -> toggleMyShowsSync()
             CommonAction.RetryClicked -> onRetry()
             else -> super.onAction(action)
         }
@@ -410,6 +438,172 @@ internal class DeviceSettingsVM(
                 isApiDomainDialogOpen = false,
             )
         )
+    }
+
+    private fun openMyShowsDialog() {
+        updateViewState(
+            stateValue.copy(
+                isMyShowsDialogOpen = true,
+                myShowsPairingUrl = null,
+                isMyShowsPairingUnavailable = false,
+            )
+        )
+        val result = myShowsSyncInteractor.startPairing { token ->
+            if (stateValue.isMyShowsDialogOpen) {
+                connectMyShows(token, isPhonePairing = true)
+            }
+        }
+        updateViewState(
+            stateValue.copy(
+                myShowsPairingUrl = result.getOrNull()?.url,
+                isMyShowsPairingUnavailable = result.isFailure,
+            )
+        )
+    }
+
+    private fun closeMyShowsDialog() {
+        if (stateValue.isMyShowsRequestInProgress) return
+        myShowsSyncInteractor.stopPairing()
+        updateViewState(
+            stateValue.copy(
+                isMyShowsDialogOpen = false,
+                myShowsPairingUrl = null,
+                isMyShowsPairingUnavailable = false,
+            )
+        )
+    }
+
+    private fun connectMyShows(token: String, isPhonePairing: Boolean = false) {
+        if (stateValue.isMyShowsRequestInProgress) return
+        if (token.isBlank()) {
+            showMessage(resources.getString(R.string.myshows_token_required))
+            return
+        }
+        updateViewState(stateValue.copy(isMyShowsRequestInProgress = true))
+        launch {
+            val result = myShowsSyncInteractor.connect(token)
+            if (isPhonePairing) {
+                myShowsSyncInteractor.reportPairingResult(result.isSuccess)
+            }
+            if (result.isSuccess) {
+                hasRequestedMyShowsApiStatus = true
+                if (!isPhonePairing) myShowsSyncInteractor.stopPairing()
+                updateMyShowsSettings(
+                    closeDialog = true,
+                    requestInProgress = false,
+                    connectionInfo = result.getOrNull(),
+                )
+                showMessage(resources.getString(R.string.myshows_connected_message))
+            } else {
+                updateViewState(stateValue.copy(isMyShowsRequestInProgress = false))
+                showMessage(resources.getString(R.string.myshows_connection_failed))
+            }
+        }
+    }
+
+    private fun validateMyShowsConnection(
+        showResultMessage: Boolean = true,
+        showDialogProgress: Boolean = true,
+    ) {
+        if (showDialogProgress && stateValue.isMyShowsRequestInProgress) return
+        updateMyShowsApiStatus(resources.getString(R.string.myshows_api_checking))
+        if (showDialogProgress) {
+            updateViewState(stateValue.copy(isMyShowsRequestInProgress = true))
+        }
+        launch {
+            val result = myShowsSyncInteractor.validateConnection()
+            if (showDialogProgress) {
+                updateViewState(stateValue.copy(isMyShowsRequestInProgress = false))
+            }
+            updateMyShowsApiStatus(
+                result.fold(
+                    onSuccess = ::formatMyShowsApiStatus,
+                    onFailure = { resources.getString(R.string.myshows_api_response_failed) },
+                )
+            )
+            if (showResultMessage) {
+                showMessage(
+                    resources.getString(
+                        if (result.isSuccess) {
+                            R.string.myshows_connection_valid
+                        } else {
+                            R.string.myshows_connection_failed
+                        }
+                    )
+                )
+            }
+        }
+    }
+
+    private fun disconnectMyShows() {
+        if (stateValue.isMyShowsRequestInProgress) return
+        myShowsSyncInteractor.stopPairing()
+        myShowsSyncInteractor.disconnect()
+        hasRequestedMyShowsApiStatus = false
+        updateMyShowsSettings(closeDialog = true)
+        showMessage(resources.getString(R.string.myshows_disconnected_message))
+    }
+
+    private fun toggleMyShowsSync() {
+        val currentState = stateValue.state
+        if (currentState !is DeviceSettingsState.Success || !currentState.isMyShowsConnected) return
+        myShowsSyncInteractor.setSyncEnabled(!currentState.isMyShowsSyncEnabled)
+        updateMyShowsSettings()
+    }
+
+    private fun updateMyShowsSettings(
+        closeDialog: Boolean = false,
+        requestInProgress: Boolean = stateValue.isMyShowsRequestInProgress,
+        connectionInfo: MyShowsCheckResult? = null,
+    ) {
+        val currentState = stateValue.state
+        if (currentState !is DeviceSettingsState.Success) return
+        val settings = myShowsSyncInteractor.getSettings()
+        updateViewState(
+            stateValue.copy(
+                state = currentState.copy(
+                    isMyShowsConnected = settings.isConnected,
+                    isMyShowsSyncEnabled = settings.isSyncEnabled,
+                    myShowsApiStatusText = if (settings.isConnected) {
+                        connectionInfo?.let(::formatMyShowsApiStatus)
+                            ?: currentState.myShowsApiStatusText
+                    } else {
+                        null
+                    },
+                ),
+                isMyShowsDialogOpen = if (closeDialog) false else stateValue.isMyShowsDialogOpen,
+                isMyShowsRequestInProgress = requestInProgress,
+                myShowsPairingUrl = if (closeDialog) null else stateValue.myShowsPairingUrl,
+                isMyShowsPairingUnavailable = if (closeDialog) {
+                    false
+                } else {
+                    stateValue.isMyShowsPairingUnavailable
+                },
+            )
+        )
+    }
+
+    private fun updateMyShowsApiStatus(statusText: String) {
+        val currentState = stateValue.state
+        if (currentState !is DeviceSettingsState.Success) return
+        updateViewState(
+            stateValue.copy(
+                state = currentState.copy(myShowsApiStatusText = statusText),
+            )
+        )
+    }
+
+    private fun formatMyShowsApiStatus(result: MyShowsCheckResult): String = when {
+        result.accountName != null -> resources.getString(
+            R.string.myshows_api_response_account,
+            result.accountName,
+        )
+        else -> resources.getString(R.string.myshows_api_response_success)
+    }
+
+    override fun onCleared() {
+        myShowsSyncInteractor.stopPairing()
+        super.onCleared()
     }
 
     private fun ApiDomainState.toDialogState(): ApiDomainDialogState {

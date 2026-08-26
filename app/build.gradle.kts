@@ -358,6 +358,7 @@ dependencies {
     implementation(libs.kotlinx.datetime)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.zxing.core)
 
     //navigation
     implementation(libs.voyager.navigator)

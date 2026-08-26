@@ -9,6 +9,7 @@ import com.kino.puber.data.api.models.isSeriesLike
 import com.kino.puber.data.repository.ItemDetailsRepository
 import com.kino.puber.data.repository.TmdbCastRepository
 import com.kino.puber.domain.interactor.bookmarks.WatchLaterBookmarkInteractor
+import com.kino.puber.domain.interactor.myshows.IMyShowsSyncInteractor
 import kotlinx.coroutines.CancellationException
 
 internal class DetailsInteractor(
@@ -16,6 +17,7 @@ internal class DetailsInteractor(
     private val itemDetailsRepository: ItemDetailsRepository,
     private val watchLaterBookmarkInteractor: WatchLaterBookmarkInteractor,
     private val tmdbCastRepository: TmdbCastRepository,
+    private val myShowsSyncInteractor: IMyShowsSyncInteractor,
 ) {
 
     suspend fun getItemDetails(id: Int): Item {
@@ -88,6 +90,9 @@ internal class DetailsInteractor(
             video = episode,
         ).getOrThrow()
         itemDetailsRepository.invalidate(id)
+        if (watched) {
+            myShowsSyncInteractor.enqueueEpisodeWatched(id, season, episode)
+        }
         return WatchedUpdate(isWatched = response.confirmedWatchedOr(watched))
     }
 
@@ -98,6 +103,9 @@ internal class DetailsInteractor(
             season = season,
         ).getOrThrow()
         itemDetailsRepository.invalidate(id)
+        if (watched) {
+            myShowsSyncInteractor.enqueueSeasonWatched(id, season)
+        }
         return WatchedUpdate(isWatched = response.confirmedWatchedOr(watched))
     }
 

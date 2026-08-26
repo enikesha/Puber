@@ -13,6 +13,7 @@ import com.kino.puber.data.api.models.WatchingStatus
 import com.kino.puber.data.api.models.WatchingToggleResponse
 import com.kino.puber.data.repository.ItemDetailsRepository
 import com.kino.puber.data.repository.PlayerPreferencesRepository
+import com.kino.puber.domain.interactor.myshows.IMyShowsSyncInteractor
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -32,6 +33,7 @@ class PlayerInteractorTest {
     private val api = mockk<KinoPubApiClient>()
     private val itemDetailsRepository = mockk<ItemDetailsRepository>()
     private val playerPreferencesRepository = mockk<PlayerPreferencesRepository>()
+    private val myShowsSyncInteractor = mockk<IMyShowsSyncInteractor>(relaxed = true)
 
     private lateinit var interactor: PlayerInteractor
 
@@ -76,7 +78,12 @@ class PlayerInteractorTest {
     @BeforeEach
     fun setup() {
         every { playerPreferencesRepository.preferSurroundAudio } returns false
-        interactor = PlayerInteractor(api, itemDetailsRepository, playerPreferencesRepository)
+        interactor = PlayerInteractor(
+            api,
+            itemDetailsRepository,
+            playerPreferencesRepository,
+            myShowsSyncInteractor,
+        )
     }
 
     // region isSeriesType
@@ -448,6 +455,7 @@ class PlayerInteractorTest {
         }
         verify(exactly = 1) { itemDetailsRepository.invalidate(10) }
         coVerify(exactly = 1) { itemDetailsRepository.getItemDetails(10) }
+        verify(exactly = 0) { myShowsSyncInteractor.enqueueEpisodeWatched(any(), any(), any()) }
     }
 
     @Test
@@ -467,6 +475,7 @@ class PlayerInteractorTest {
         }
         verify(exactly = 1) { itemDetailsRepository.invalidate(42) }
         coVerify(exactly = 1) { itemDetailsRepository.getItemDetails(42) }
+        verify(exactly = 1) { myShowsSyncInteractor.enqueueEpisodeWatched(42, 1, 1) }
     }
 
     @Test
@@ -498,6 +507,7 @@ class PlayerInteractorTest {
 
         assertNull(result)
         verify(exactly = 1) { itemDetailsRepository.invalidate(42) }
+        verify(exactly = 1) { myShowsSyncInteractor.enqueueEpisodeWatched(42, 1, 2) }
     }
 
     @Test
@@ -512,6 +522,7 @@ class PlayerInteractorTest {
 
         assertNull(result)
         verify(exactly = 1) { itemDetailsRepository.invalidate(42) }
+        verify(exactly = 0) { myShowsSyncInteractor.enqueueSeasonWatched(any(), any()) }
     }
 
     // endregion
@@ -558,6 +569,7 @@ class PlayerInteractorTest {
 
         coVerify(exactly = 1) { api.toggleWatchingStatus(42, 1, 2, 3) }
         verify(exactly = 1) { itemDetailsRepository.invalidate(42) }
+        verify(exactly = 1) { myShowsSyncInteractor.enqueueEpisodeWatched(42, 2, 3) }
     }
 
     @Test
@@ -574,6 +586,7 @@ class PlayerInteractorTest {
         assertTrue(failure is IllegalStateException)
         coVerify(exactly = 1) { api.toggleWatchingStatus(42, 1, null, null) }
         verify(exactly = 0) { itemDetailsRepository.invalidate(any()) }
+        verify(exactly = 0) { myShowsSyncInteractor.enqueueEpisodeWatched(any(), any(), any()) }
     }
 
     // endregion

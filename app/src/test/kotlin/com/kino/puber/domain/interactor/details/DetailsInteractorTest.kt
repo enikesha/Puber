@@ -11,9 +11,11 @@ import com.kino.puber.data.api.models.WatchingToggleResponse
 import com.kino.puber.data.repository.ItemDetailsRepository
 import com.kino.puber.data.repository.TmdbCastRepository
 import com.kino.puber.domain.interactor.bookmarks.WatchLaterBookmarkInteractor
+import com.kino.puber.domain.interactor.myshows.IMyShowsSyncInteractor
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -24,11 +26,13 @@ class DetailsInteractorTest {
     private val itemDetailsRepository = mockk<ItemDetailsRepository>(relaxed = true)
     private val watchLaterBookmarkInteractor = mockk<WatchLaterBookmarkInteractor>()
     private val tmdbCastRepository = mockk<TmdbCastRepository>(relaxed = true)
+    private val myShowsSyncInteractor = mockk<IMyShowsSyncInteractor>(relaxed = true)
     private val interactor = DetailsInteractor(
         api,
         itemDetailsRepository,
         watchLaterBookmarkInteractor,
         tmdbCastRepository,
+        myShowsSyncInteractor,
     )
 
     @Test
@@ -139,6 +143,7 @@ class DetailsInteractorTest {
 
         assertEquals(true, result.isWatched)
         coVerify(exactly = 0) { itemDetailsRepository.refresh(any()) }
+        verify(exactly = 0) { myShowsSyncInteractor.enqueueEpisodeWatched(any(), any(), any()) }
     }
 
     @Test
@@ -151,6 +156,7 @@ class DetailsInteractorTest {
 
         assertEquals(true, result.isWatched)
         coVerify(exactly = 0) { itemDetailsRepository.refresh(any()) }
+        verify(exactly = 1) { myShowsSyncInteractor.enqueueEpisodeWatched(42, 1, 2) }
     }
 
     @Test
@@ -163,6 +169,18 @@ class DetailsInteractorTest {
 
         assertEquals(false, result.isWatched)
         coVerify(exactly = 0) { itemDetailsRepository.refresh(any()) }
+        verify(exactly = 0) { myShowsSyncInteractor.enqueueSeasonWatched(any(), any()) }
+    }
+
+    @Test
+    fun setSeasonWatched_enqueuesSeasonForOneWaySync() = runTest {
+        coEvery { api.toggleWatchingStatus(42, status = 1, season = 2) } returns Result.success(
+            WatchingToggleResponse(status = 200, watched = 1)
+        )
+
+        interactor.setSeasonWatched(42, season = 2, watched = true)
+
+        verify(exactly = 1) { myShowsSyncInteractor.enqueueSeasonWatched(42, 2) }
     }
 
     private fun movie(bookmarks: List<Bookmark>?): Item {

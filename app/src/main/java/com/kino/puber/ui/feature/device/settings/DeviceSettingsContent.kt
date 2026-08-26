@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
@@ -255,6 +256,8 @@ private fun DeviceSettingsLazyColumn(
 
 internal const val DEVICE_SETTINGS_LIST_TEST_TAG = "device_settings_list"
 internal const val SPEED_TEST_LAUNCHER_TEST_TAG = "speed_test_launcher"
+private const val ENABLED_ITEM_ALPHA = 1f
+private const val DISABLED_ITEM_ALPHA = 0.5f
 private const val DEVICE_SETTINGS_HEADER_ITEMS_COUNT = 5
 
 private fun LazyListScope.deviceSettingsHeaderItems(
@@ -518,6 +521,7 @@ private fun LazyListScope.localPreferencesItems(
             onToggle = { onAction(DeviceSettingsActions.ToggleWatchedIndicators) },
         )
     }
+    myShowsSettingsItems(state, onAction)
     item {
         Spacer(modifier = Modifier.height(16.dp))
     }
@@ -551,6 +555,48 @@ private fun LazyListScope.localPreferencesItems(
         )
     }
     media3PlaybackItems(state, onAction)
+}
+
+private fun LazyListScope.myShowsSettingsItems(
+    state: DeviceSettingsState.Success,
+    onAction: (UIAction) -> Unit,
+) {
+    item {
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+    item {
+        Column {
+            Text(
+                text = stringResource(R.string.myshows_settings_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = stringResource(R.string.myshows_settings_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    item {
+        LocalActionItem(
+            label = stringResource(R.string.myshows_account),
+            description = stringResource(R.string.myshows_account_description),
+            value = state.myShowsApiStatusText ?: stringResource(
+                if (state.isMyShowsConnected) R.string.myshows_connected else R.string.myshows_not_connected,
+            ),
+            onClick = { onAction(DeviceSettingsActions.OpenMyShowsDialog) },
+        )
+    }
+    item {
+        LocalToggleItem(
+            label = stringResource(R.string.myshows_sync_watched),
+            description = stringResource(R.string.myshows_sync_watched_description),
+            checked = state.isMyShowsSyncEnabled,
+            enabled = state.isMyShowsConnected,
+            onToggle = { onAction(DeviceSettingsActions.ToggleMyShowsSync) },
+        )
+    }
 }
 
 private fun LazyListScope.media3PlaybackItems(
@@ -591,6 +637,7 @@ private fun LazyListScope.media3PlaybackItems(
 @Composable
 private fun LocalActionItem(
     label: String,
+    description: String? = null,
     value: String? = null,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -610,12 +657,20 @@ private fun LocalActionItem(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.secondary,
+            )
+            if (description != null) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         if (value != null) {
             Text(
                 text = value,
@@ -631,6 +686,7 @@ private fun LocalToggleItem(
     label: String,
     description: String? = null,
     checked: Boolean,
+    enabled: Boolean = true,
     onToggle: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -639,8 +695,10 @@ private fun LocalToggleItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .highlightOnFocus(isFocused)
+            .alpha(if (enabled) ENABLED_ITEM_ALPHA else DISABLED_ITEM_ALPHA)
+            .highlightOnFocus(isFocused && enabled)
             .clickable(
+                enabled = enabled,
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onToggle,

@@ -553,12 +553,17 @@ internal class PlayerVM(
     }
 
     private fun applyAudioTrackSelection(index: Int, persist: Boolean = true) {
+        val currentState = (stateValue as? PlayerViewState.Content)?.content ?: return
+        val audioTrack = currentState.audioTracks.getOrNull(index) ?: return
         updateContent {
             copy(selectedAudioTrackIndex = index)
         }
         playbackController.selectAudioTrack(index)
         if (persist) {
-            saveTrackPreferences()
+            interactor.savePreferredAudioTrack(
+                audioLang = audioTrack.language.takeIf { it.isNotEmpty() },
+                audioLabel = audioTrack.label.takeIf { it.isNotEmpty() },
+            )
         }
     }
 
@@ -570,7 +575,10 @@ internal class PlayerVM(
         }
         playbackController.selectSubtitle(subtitle)
         if (persist) {
-            saveTrackPreferences()
+            interactor.savePreferredSubtitleTrack(
+                subtitleLang = subtitle.language,
+                subtitleUrl = subtitle.url,
+            )
         }
     }
 
@@ -1362,19 +1370,6 @@ internal class PlayerVM(
 
     private fun autoMarkCurrentAsWatched() {
         requestCurrentMediaWatched(WatchedOrigin.Auto)
-    }
-
-    private fun saveTrackPreferences() {
-        val state = (stateValue as? PlayerViewState.Content)?.content ?: return
-        val audioTrack = state.audioTracks.getOrNull(state.selectedAudioTrackIndex)
-        val subtitle = state.subtitleTracks.getOrNull(state.selectedSubtitleIndex)
-        interactor.saveTrackPreferences(
-            itemId = params.itemId,
-            audioLang = audioTrack?.language?.takeIf { it.isNotEmpty() },
-            audioLabel = audioTrack?.label?.takeIf { it.isNotEmpty() },
-            subtitleLang = subtitle?.language?.takeIf { it.isNotEmpty() },
-            subtitleUrl = subtitle?.url?.takeIf { it.isNotEmpty() },
-        )
     }
 
     private fun markContentChanged(type: ContentChangeType) {

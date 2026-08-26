@@ -29,7 +29,7 @@ internal class AudioTrackPreferenceResolver {
         val matchers = listOf(
             { exactSubtitleUrlMatch(tracks, preferredUrl) },
             { stableSubtitleUrlMatch(tracks, preferredUrl) },
-            { unambiguousSubtitleLanguageMatch(tracks, preferredLang) },
+            { subtitleLanguageMatch(tracks, preferredLang) },
         )
         return matchers.firstNotNullOfOrNull { matcher ->
             matcher().takeIf { it >= 0 }
@@ -89,13 +89,12 @@ internal class AudioTrackPreferenceResolver {
         return tracks.indexOfFirst { it.language == preferredLang }
     }
 
-    private fun unambiguousSubtitleLanguageMatch(
+    private fun subtitleLanguageMatch(
         tracks: List<SubtitleTrackUIState>,
         preferredLang: String?,
     ): Int {
         if (preferredLang == null) return NO_MATCH
-        val matches = tracks.withIndex().filter { it.value.language == preferredLang }
-        return matches.singleOrNull()?.index ?: NO_MATCH
+        return tracks.indexOfFirst { it.language == preferredLang }
     }
 
     /** Extracts voice type from HLS labels like "03. Многоголосый. Red Head Sound (RUS)". */

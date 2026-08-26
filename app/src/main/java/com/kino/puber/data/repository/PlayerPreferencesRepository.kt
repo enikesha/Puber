@@ -9,51 +9,55 @@ class PlayerPreferencesRepository(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun getPreferredAudioLang(itemId: Int): String? {
-        return prefs.getString("${KEY_AUDIO_LANG_PREFIX}$itemId", null)
+        return prefs.getString(KEY_AUDIO_LANG, null)
+            ?: prefs.getString("${KEY_AUDIO_LANG_PREFIX}$itemId", null)
     }
 
     fun getPreferredSubtitleLang(itemId: Int): String? {
-        return prefs.getString("${KEY_SUBTITLE_LANG_PREFIX}$itemId", null)
+        return if (prefs.contains(KEY_SUBTITLE_LANG)) {
+            prefs.getString(KEY_SUBTITLE_LANG, null)
+        } else {
+            prefs.getString("${KEY_SUBTITLE_LANG_PREFIX}$itemId", null)
+        }
     }
 
     fun getPreferredSubtitleUrl(itemId: Int): String? {
-        return prefs.getString("${KEY_SUBTITLE_URL_PREFIX}$itemId", null)
+        return if (prefs.contains(KEY_SUBTITLE_URL)) {
+            prefs.getString(KEY_SUBTITLE_URL, null)
+        } else {
+            prefs.getString("${KEY_SUBTITLE_URL_PREFIX}$itemId", null)
+        }
     }
 
     fun getPreferredAudioLabel(itemId: Int): String? {
-        return prefs.getString("${KEY_AUDIO_LABEL_PREFIX}$itemId", null)
+        return prefs.getString(KEY_AUDIO_LABEL, null)
+            ?: prefs.getString("${KEY_AUDIO_LABEL_PREFIX}$itemId", null)
     }
 
-    fun saveTrackPreferences(
-        itemId: Int,
+    fun savePreferredAudioTrack(
         audioLang: String?,
         audioLabel: String?,
-        subtitleLang: String?,
-        subtitleUrl: String?,
     ) {
         prefs.edit().apply {
             if (audioLang != null) {
-                putString("${KEY_AUDIO_LANG_PREFIX}$itemId", audioLang)
+                putString(KEY_AUDIO_LANG, audioLang)
             } else {
-                remove("${KEY_AUDIO_LANG_PREFIX}$itemId")
+                remove(KEY_AUDIO_LANG)
             }
             if (audioLabel != null) {
-                putString("${KEY_AUDIO_LABEL_PREFIX}$itemId", audioLabel)
+                putString(KEY_AUDIO_LABEL, audioLabel)
             } else {
-                remove("${KEY_AUDIO_LABEL_PREFIX}$itemId")
-            }
-            if (subtitleLang != null) {
-                putString("${KEY_SUBTITLE_LANG_PREFIX}$itemId", subtitleLang)
-            } else {
-                remove("${KEY_SUBTITLE_LANG_PREFIX}$itemId")
-            }
-            if (subtitleUrl != null) {
-                putString("${KEY_SUBTITLE_URL_PREFIX}$itemId", subtitleUrl)
-            } else {
-                remove("${KEY_SUBTITLE_URL_PREFIX}$itemId")
+                remove(KEY_AUDIO_LABEL)
             }
             apply()
         }
+    }
+
+    fun savePreferredSubtitleTrack(subtitleLang: String, subtitleUrl: String) {
+        prefs.edit()
+            .putString(KEY_SUBTITLE_LANG, subtitleLang)
+            .putString(KEY_SUBTITLE_URL, subtitleUrl)
+            .apply()
     }
 
     fun getSubtitleSize(): SubtitleSize {
@@ -114,6 +118,10 @@ class PlayerPreferencesRepository(context: Context) {
         const val KEY_AUDIO_LABEL_PREFIX = "audio_label_"
         const val KEY_SUBTITLE_LANG_PREFIX = "subtitle_lang_"
         const val KEY_SUBTITLE_URL_PREFIX = "subtitle_url_"
+        const val KEY_AUDIO_LANG = "preferred_audio_lang"
+        const val KEY_AUDIO_LABEL = "preferred_audio_label"
+        const val KEY_SUBTITLE_LANG = "preferred_subtitle_lang"
+        const val KEY_SUBTITLE_URL = "preferred_subtitle_url"
         const val KEY_SUBTITLE_SIZE = "subtitle_size"
         const val KEY_SKIP_INTRO = "skip_intro_enabled"
         const val KEY_SKIP_RECAP = "skip_recap_enabled"

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import io.mockk.every
 import io.mockk.mockk
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -30,8 +31,36 @@ internal class PlayerPreferencesRepositoryTest {
         assertTrue(restoredRepository.hagcPlaybackEnabled)
     }
 
+    @Test
+    fun trackPreferences_applyAcrossDifferentItems() {
+        val fixture = fixture()
+
+        fixture.repository.savePreferredAudioTrack(audioLang = "rus", audioLabel = "Russian")
+        fixture.repository.savePreferredSubtitleTrack(subtitleLang = "eng", subtitleUrl = "english.vtt")
+
+        val repository = PlayerPreferencesRepository(fixture.context)
+        assertEquals("rus", repository.getPreferredAudioLang(itemId = 42))
+        assertEquals("rus", repository.getPreferredAudioLang(itemId = 99))
+        assertEquals("Russian", repository.getPreferredAudioLabel(itemId = 99))
+        assertEquals("eng", repository.getPreferredSubtitleLang(itemId = 42))
+        assertEquals("eng", repository.getPreferredSubtitleLang(itemId = 99))
+        assertEquals("english.vtt", repository.getPreferredSubtitleUrl(itemId = 99))
+    }
+
+    @Test
+    fun subtitleOff_isPersistedAsExplicitGlobalPreference() {
+        val fixture = fixture()
+
+        fixture.repository.savePreferredSubtitleTrack(subtitleLang = "", subtitleUrl = "")
+
+        val repository = PlayerPreferencesRepository(fixture.context)
+        assertEquals("", repository.getPreferredSubtitleLang(itemId = 42))
+        assertEquals("", repository.getPreferredSubtitleLang(itemId = 99))
+        assertEquals("", repository.getPreferredSubtitleUrl(itemId = 99))
+    }
+
     private fun fixture(): Fixture {
-        val preferences = BooleanTestPreferences()
+        val preferences = TestPreferences()
         val context = mockk<Context>()
         every {
             context.getSharedPreferences(any(), Context.MODE_PRIVATE)
@@ -48,21 +77,44 @@ internal class PlayerPreferencesRepositoryTest {
     )
 }
 
-private class BooleanTestPreferences {
-    private val values: MutableMap<String, Boolean> = mutableMapOf()
+private class TestPreferences {
+    private val booleanValues: MutableMap<String, Boolean> = mutableMapOf()
+    private val intValues: MutableMap<String, Int> = mutableMapOf()
     val sharedPreferences: SharedPreferences = mockk()
 
     private val editor: SharedPreferences.Editor = mockk()
+    private val stringValues: MutableMap<String, String?> = mutableMapOf()
 
     init {
         every { sharedPreferences.getBoolean(any(), any()) } answers {
-            values[firstArg()] ?: secondArg()
+            booleanValues[firstArg()] ?: secondArg()
+        }
+        every { sharedPreferences.getInt(any(), any()) } answers {
+            intValues[firstArg()] ?: secondArg()
         }
         every { sharedPreferences.edit() } returns editor
         every { editor.putBoolean(any(), any()) } answers {
-            values[firstArg()] = secondArg()
+            booleanValues[firstArg()] = secondArg()
+            editor
+        }
+        every { editor.putInt(any(), any()) } answers {
+            intValues[firstArg()] = secondArg()
             editor
         }
         every { editor.apply() } returns Unit
+        every { sharedPreferences.getString(any(), any()) } answers {
+            if (stringValues.containsKey(firstArg())) stringValues[firstArg()] else secondArg()
+        }
+        every { sharedPreferences.contains(any()) } answers {
+            stringValues.containsKey(firstArg())
+        }
+        every { editor.putString(any(), any()) } answers {
+            stringValues[firstArg()] = secondArg()
+            editor
+        }
+        every { editor.remove(any()) } answers {
+            stringValues.remove(firstArg())
+            editor
+        }
     }
 }

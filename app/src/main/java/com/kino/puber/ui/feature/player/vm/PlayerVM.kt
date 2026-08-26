@@ -37,6 +37,7 @@ import com.kino.puber.ui.feature.player.model.PlayerUIMapper
 import com.kino.puber.ui.feature.player.model.PlayerViewState
 import com.kino.puber.ui.feature.player.model.ResumeDialogState
 import com.kino.puber.ui.feature.player.model.SeekIndicatorState
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.domain.model.SubtitleSize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -147,6 +148,7 @@ internal class PlayerVM(
     private var autoMarkHandledToken: MediaToken? = null
     private var closeJob: Job? = null
     private var closing = false
+    private var bluetoothSyncOriginalDelay: BluetoothAudioDelay? = null
 
     private val seekHandler = SeekHandler()
     private val controlsStateMachine = ControlsStateMachine()
@@ -287,6 +289,7 @@ internal class PlayerVM(
             fastDnsEnabled = interactor.isFastDnsEnabled(),
         ).copy(
             isMarkCurrentWatchedInFlight = watchedMutationsInFlight[token.key].orZero() > 0,
+            bluetoothAudioDelay = playbackController.bluetoothAudioDelay,
         )
 
         publishPreparedContent(contentState, resumeDialog)
@@ -343,6 +346,7 @@ internal class PlayerVM(
         val fastDns = content?.fastDnsEnabled ?: true
         val streamUrl = interactor.selectStreamUrl(media.files, qualityIndex) ?: return
         playbackController.prepare(streamUrl, media.subtitles, savedPosition, bufferPreset, fastDns)
+        refreshBluetoothSyncControlsVisibility()
     }
 
     private fun switchStreamUrl(qualityIndex: Int) {
@@ -391,7 +395,7 @@ internal class PlayerVM(
             is PlayerAction.ShowControls -> showControls(action.focusTarget)
             is PlayerAction.HideControls -> hideControls()
             is PlayerAction.ResetControlsTimer -> scheduleControlsHide()
-            is PlayerAction.OpenAudioSubtitlesPanel -> openPanel(ActivePanel.AudioSubtitles)
+            is PlayerAction.OpenAudioSubtitlesPanel -> openAudioSubtitlesPanel()
             is PlayerAction.OpenVideoSettingsPanel -> openPanel(ActivePanel.VideoSettings)
             is PlayerAction.OpenEpisodesPanel -> openPanel(ActivePanel.Episodes)
             is PlayerAction.ClosePanel -> closePanel()
@@ -399,6 +403,11 @@ internal class PlayerVM(
             is PlayerAction.SelectSubtitle -> applySubtitleSelection(action.index)
             is PlayerAction.SelectSoundMode -> selectSoundMode(action.index)
             is PlayerAction.CycleSubtitleSize -> cycleSubtitleSize()
+            is PlayerAction.OpenBluetoothSyncPanel -> openBluetoothSyncPanel()
+            is PlayerAction.DelayBluetoothAudio -> adjustBluetoothSync(BluetoothAudioDelay::decrease)
+            is PlayerAction.DelayBluetoothVideo -> adjustBluetoothSync(BluetoothAudioDelay::increase)
+            is PlayerAction.ResetBluetoothSync -> previewBluetoothSync(BluetoothAudioDelay.OFF)
+            is PlayerAction.SaveBluetoothSync -> saveBluetoothSync()
             is PlayerAction.SelectQuality -> selectQuality(action.index)
             is PlayerAction.SelectSpeed -> selectSpeed(action.index)
             is PlayerAction.SelectAspectRatio -> selectAspectRatio(action.index)
@@ -521,7 +530,25 @@ internal class PlayerVM(
         processEffects(effects)
     }
 
+    private fun openAudioSubtitlesPanel() {
+        refreshBluetoothSyncControlsVisibility()
+        openPanel(ActivePanel.AudioSubtitles)
+    }
+
+    private fun openBluetoothSyncPanel() {
+        refreshBluetoothSyncControlsVisibility()
+        val content = (stateValue as? PlayerViewState.Content)?.content ?: return
+        if (!content.bluetoothSyncControlsVisible) return
+        bluetoothSyncOriginalDelay = playbackController.bluetoothAudioDelay
+        openPanel(ActivePanel.BluetoothSync)
+    }
+
     private fun closePanel() {
+        val content = (stateValue as? PlayerViewState.Content)?.content
+        if (content?.activePanel == ActivePanel.BluetoothSync) {
+            cancelBluetoothSync()
+            return
+        }
         val effects = controlsStateMachine.closePanel()
         applyControlsState()
         processEffects(effects)
@@ -560,6 +587,54 @@ internal class PlayerVM(
         if (persist) {
             saveTrackPreferences()
         }
+    }
+
+    private fun adjustBluetoothSync(
+        adjustment: BluetoothAudioDelay.() -> BluetoothAudioDelay,
+    ) {
+        val content = (stateValue as? PlayerViewState.Content)?.content ?: return
+        if (!content.bluetoothSyncControlsVisible || content.activePanel != ActivePanel.BluetoothSync) return
+        val current = content.bluetoothAudioDelay
+        previewBluetoothSync(current.adjustment())
+    }
+
+    private fun previewBluetoothSync(delay: BluetoothAudioDelay) {
+        val content = (stateValue as? PlayerViewState.Content)?.content ?: return
+        if (!content.bluetoothSyncControlsVisible || content.activePanel != ActivePanel.BluetoothSync) return
+        playbackController.previewBluetoothAudioDelay(delay)
+        updateContent { copy(bluetoothAudioDelay = delay) }
+    }
+
+    private fun saveBluetoothSync() {
+        val content = (stateValue as? PlayerViewState.Content)?.content ?: return
+        if (!content.bluetoothSyncControlsVisible || content.activePanel != ActivePanel.BluetoothSync) return
+        playbackController.saveBluetoothAudioDelay(content.bluetoothAudioDelay)
+        bluetoothSyncOriginalDelay = null
+        closeBluetoothSyncPanel()
+    }
+
+    private fun cancelBluetoothSync() {
+        val originalDelay = bluetoothSyncOriginalDelay ?: playbackController.bluetoothAudioDelay
+        playbackController.previewBluetoothAudioDelay(originalDelay)
+        updateContent { copy(bluetoothAudioDelay = originalDelay) }
+        bluetoothSyncOriginalDelay = null
+        closeBluetoothSyncPanel()
+    }
+
+    private fun closeBluetoothSyncPanel() {
+        val effects = controlsStateMachine.closePanel()
+        applyControlsState()
+        processEffects(effects)
+    }
+
+    private fun refreshBluetoothSyncControlsVisibility() {
+        val visible = playbackController.bluetoothSyncControlsEnabled &&
+            playbackController.isBluetoothOutputConnected
+        val content = (stateValue as? PlayerViewState.Content)?.content ?: return
+        if (!visible && content.activePanel == ActivePanel.BluetoothSync) {
+            closePanel()
+        }
+        updateContent { copy(bluetoothSyncControlsVisible = visible) }
     }
 
     private fun applySubtitleSelection(index: Int, persist: Boolean = true) {
@@ -1106,6 +1181,11 @@ internal class PlayerVM(
     }
 
     private fun handleControlsBack(): Boolean {
+        val content = (stateValue as? PlayerViewState.Content)?.content
+        if (content?.activePanel == ActivePanel.BluetoothSync) {
+            cancelBluetoothSync()
+            return false
+        }
         val effects = controlsStateMachine.handleBack()
         val shouldExit = effects.any { it is ControlsStateMachine.Effect.SaveAndExit }
         if (!shouldExit) {
@@ -1130,6 +1210,7 @@ internal class PlayerVM(
         positionUpdateJob = launch {
             while (isActive) {
                 delay(POSITION_UPDATE_INTERVAL_MS)
+                refreshBluetoothSyncControlsVisibility()
                 val isPlaying = playbackController.isPlaying
                 val isBuffering = (stateValue as? PlayerViewState.Content)?.content?.isBuffering == true
                 if (isPlaying || isBuffering) {

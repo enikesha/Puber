@@ -9,6 +9,7 @@ import com.kino.puber.data.api.models.Item
 import com.kino.puber.data.api.models.ItemType
 import com.kino.puber.data.api.models.SkipSegment
 import com.kino.puber.data.api.models.SkipSegmentType
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.domain.model.SubtitleSize
 import com.kino.puber.ui.ScreensImpl
 import com.kino.puber.ui.feature.player.model.ActivePanel
@@ -315,6 +316,119 @@ internal class PlayerVMTest : PlayerVMTestFixture() {
         vm.onAction(PlayerAction.OpenAudioSubtitlesPanel)
         vm.onAction(PlayerAction.ClosePanel)
         assertEquals(ActivePanel.None, contentState(vm).activePanel)
+    }
+
+    @Test
+    fun delayBluetoothAudio_appliesNegativeDelayLiveWithoutPersistingIt() {
+        val vm = startedVM()
+        vm.onAction(PlayerAction.OpenAudioSubtitlesPanel)
+        vm.onAction(PlayerAction.OpenBluetoothSyncPanel)
+
+        vm.onAction(PlayerAction.DelayBluetoothAudio)
+
+        val expected = BluetoothAudioDelay.fromMilliseconds(-10)
+        assertEquals(expected, contentState(vm).bluetoothAudioDelay)
+        verify { playbackController.previewBluetoothAudioDelay(expected) }
+        verify(exactly = 0) { playbackController.saveBluetoothAudioDelay(any()) }
+        verify(exactly = 1) { playbackController.prepare(any(), any(), any()) }
+    }
+
+    @Test
+    fun delayBluetoothVideo_increasesSignedDelayWithoutRestartingPlayback() {
+        val vm = startedVM()
+        vm.onAction(PlayerAction.OpenAudioSubtitlesPanel)
+        vm.onAction(PlayerAction.OpenBluetoothSyncPanel)
+
+        vm.onAction(PlayerAction.DelayBluetoothVideo)
+
+        val expected = BluetoothAudioDelay.fromMilliseconds(10)
+        assertEquals(expected, contentState(vm).bluetoothAudioDelay)
+        verify { playbackController.previewBluetoothAudioDelay(expected) }
+        verify(exactly = 0) { playbackController.saveBluetoothAudioDelay(any()) }
+        verify(exactly = 1) { playbackController.prepare(any(), any(), any()) }
+    }
+
+    @Test
+    fun resetBluetoothSync_appliesOffLiveWithoutPersistingIt() {
+        every { playbackController.bluetoothAudioDelay } returns BluetoothAudioDelay.NEGATIVE_MS_200
+        val vm = startedVM()
+        vm.onAction(PlayerAction.OpenAudioSubtitlesPanel)
+        vm.onAction(PlayerAction.OpenBluetoothSyncPanel)
+
+        vm.onAction(PlayerAction.ResetBluetoothSync)
+
+        assertEquals(BluetoothAudioDelay.OFF, contentState(vm).bluetoothAudioDelay)
+        verify { playbackController.previewBluetoothAudioDelay(BluetoothAudioDelay.OFF) }
+        verify(exactly = 0) { playbackController.saveBluetoothAudioDelay(any()) }
+    }
+
+    @Test
+    fun saveBluetoothSync_persistsDraftAndReturnsToAudioPanel() {
+        val vm = startedVM()
+        vm.onAction(PlayerAction.OpenAudioSubtitlesPanel)
+        vm.onAction(PlayerAction.OpenBluetoothSyncPanel)
+        vm.onAction(PlayerAction.DelayBluetoothVideo)
+
+        vm.onAction(PlayerAction.SaveBluetoothSync)
+
+        val expected = BluetoothAudioDelay.fromMilliseconds(10)
+        verify { playbackController.saveBluetoothAudioDelay(expected) }
+        assertEquals(expected, contentState(vm).bluetoothAudioDelay)
+        assertEquals(ActivePanel.AudioSubtitles, contentState(vm).activePanel)
+    }
+
+    @Test
+    fun backFromBluetoothSync_restoresOriginalDelayWithoutPersistingDraft() {
+        every { playbackController.bluetoothAudioDelay } returns BluetoothAudioDelay.NEGATIVE_MS_200
+        val vm = startedVM()
+        vm.onAction(PlayerAction.OpenAudioSubtitlesPanel)
+        vm.onAction(PlayerAction.OpenBluetoothSyncPanel)
+        vm.onAction(PlayerAction.DelayBluetoothVideo)
+
+        vm.onAction(PlayerAction.OnBackPressed)
+
+        verify { playbackController.previewBluetoothAudioDelay(BluetoothAudioDelay.NEGATIVE_MS_200) }
+        verify(exactly = 0) { playbackController.saveBluetoothAudioDelay(any()) }
+        assertEquals(BluetoothAudioDelay.NEGATIVE_MS_200, contentState(vm).bluetoothAudioDelay)
+        assertEquals(ActivePanel.AudioSubtitles, contentState(vm).activePanel)
+    }
+
+    @Test
+    fun bluetoothSyncEntry_isHidden_whenSettingIsDisabled() {
+        every { playbackController.bluetoothSyncControlsEnabled } returns false
+
+        val vm = startedVM()
+        vm.onAction(PlayerAction.OpenAudioSubtitlesPanel)
+        vm.onAction(PlayerAction.OpenBluetoothSyncPanel)
+
+        assertFalse(contentState(vm).bluetoothSyncControlsVisible)
+        assertEquals(ActivePanel.AudioSubtitles, contentState(vm).activePanel)
+    }
+
+    @Test
+    fun bluetoothSyncEntry_isHidden_whenCurrentOutputIsNotBluetooth() {
+        every { playbackController.isBluetoothOutputConnected } returns false
+
+        val vm = startedVM()
+        vm.onAction(PlayerAction.OpenAudioSubtitlesPanel)
+        vm.onAction(PlayerAction.OpenBluetoothSyncPanel)
+
+        assertFalse(contentState(vm).bluetoothSyncControlsVisible)
+        assertEquals(ActivePanel.AudioSubtitles, contentState(vm).activePanel)
+    }
+
+    @Test
+    fun bluetoothSyncPanel_returnsToAudioPanel_whenBluetoothOutputDisconnects() {
+        val vm = startedVM()
+        vm.onAction(PlayerAction.OpenAudioSubtitlesPanel)
+        vm.onAction(PlayerAction.OpenBluetoothSyncPanel)
+        assertEquals(ActivePanel.BluetoothSync, contentState(vm).activePanel)
+
+        every { playbackController.isBluetoothOutputConnected } returns false
+        vm.onAction(PlayerAction.OpenBluetoothSyncPanel)
+
+        assertFalse(contentState(vm).bluetoothSyncControlsVisible)
+        assertEquals(ActivePanel.AudioSubtitles, contentState(vm).activePanel)
     }
 
     // endregion

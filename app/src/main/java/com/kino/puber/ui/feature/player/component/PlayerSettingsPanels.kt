@@ -19,22 +19,7 @@ internal fun PlayerSettingsPanels(
 ) {
     var episodeContextMenuItem by remember { mutableStateOf<VideoItemUIState?>(null) }
 
-    AudioSubtitlesPanel(
-        visible = content.activePanel == ActivePanel.AudioSubtitles,
-        isFocusOwner = content.resumeDialog == null &&
-            content.activePanel == ActivePanel.AudioSubtitles,
-        soundModes = content.soundModes,
-        selectedSoundModeIndex = content.selectedSoundModeIndex,
-        audioTracks = content.audioTracks,
-        selectedAudioTrackIndex = content.selectedAudioTrackIndex,
-        subtitleTracks = content.subtitleTracks,
-        selectedSubtitleIndex = content.selectedSubtitleIndex,
-        onSoundModeSelected = rememberIndexedAction(onAction, PlayerAction::SelectSoundMode),
-        onAudioTrackSelected = rememberIndexedAction(onAction, PlayerAction::SelectAudioTrack),
-        onSubtitleSelected = rememberIndexedAction(onAction, PlayerAction::SelectSubtitle),
-        onSubtitleSizeClick = rememberAction(onAction, PlayerAction.CycleSubtitleSize),
-        onBackPressed = rememberAction(onAction, PlayerAction.ClosePanel),
-    )
+    PlayerAudioSettingsPanels(content = content, onAction = onAction)
 
     VideoSettingsPanel(
         visible = content.activePanel == ActivePanel.VideoSettings,
@@ -73,6 +58,43 @@ internal fun PlayerSettingsPanels(
         onPlay = { onAction(PlayerAction.SelectEpisodeById(it.id)) },
         onMarkEpisodeWatched = { item, watched -> onAction(PlayerAction.EpisodeWatchedChanged(item, watched)) },
         onMarkSeasonWatched = { item, watched -> onAction(PlayerAction.SeasonWatchedChanged(item, watched)) },
+    )
+}
+
+@Composable
+private fun PlayerAudioSettingsPanels(
+    content: PlayerContentState,
+    onAction: (UIAction) -> Unit,
+) {
+    AudioSubtitlesPanel(
+        visible = content.activePanel == ActivePanel.AudioSubtitles,
+        isFocusOwner = content.resumeDialog == null &&
+            content.activePanel == ActivePanel.AudioSubtitles,
+        soundModes = content.soundModes,
+        selectedSoundModeIndex = content.selectedSoundModeIndex,
+        audioTracks = content.audioTracks,
+        selectedAudioTrackIndex = content.selectedAudioTrackIndex,
+        subtitleTracks = content.subtitleTracks,
+        selectedSubtitleIndex = content.selectedSubtitleIndex,
+        bluetoothAudioDelay = content.bluetoothAudioDelay,
+        showBluetoothSyncControls = content.bluetoothSyncControlsVisible,
+        onSoundModeSelected = rememberIndexedAction(onAction, PlayerAction::SelectSoundMode),
+        onAudioTrackSelected = rememberIndexedAction(onAction, PlayerAction::SelectAudioTrack),
+        onSubtitleSelected = rememberIndexedAction(onAction, PlayerAction::SelectSubtitle),
+        onSubtitleSizeClick = rememberAction(onAction, PlayerAction.CycleSubtitleSize),
+        onBluetoothSyncClick = rememberAction(onAction, PlayerAction.OpenBluetoothSyncPanel),
+        onBackPressed = rememberAction(onAction, PlayerAction.ClosePanel),
+    )
+
+    BluetoothSyncPanel(
+        visible = content.activePanel == ActivePanel.BluetoothSync,
+        isFocusOwner = content.resumeDialog == null &&
+            content.activePanel == ActivePanel.BluetoothSync,
+        delay = content.bluetoothAudioDelay,
+        onDecrease = rememberAction(onAction, PlayerAction.DelayBluetoothAudio),
+        onIncrease = rememberAction(onAction, PlayerAction.DelayBluetoothVideo),
+        onReset = rememberAction(onAction, PlayerAction.ResetBluetoothSync),
+        onSave = rememberAction(onAction, PlayerAction.SaveBluetoothSync),
     )
 }
 

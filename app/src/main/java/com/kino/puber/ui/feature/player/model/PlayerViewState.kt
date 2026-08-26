@@ -3,8 +3,8 @@ package com.kino.puber.ui.feature.player.model
 import androidx.compose.runtime.Immutable
 import com.kino.puber.core.ui.uikit.component.moviesList.VideoGridUIState
 import com.kino.puber.data.api.models.SkipSegmentType
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.domain.model.SubtitleSize
-import com.kino.puber.ui.feature.player.model.FocusTarget
 import com.kino.puber.ui.feature.player.vm.PlaybackController
 import com.kino.puber.ui.feature.player.vm.PlaybackIntent
 
@@ -45,6 +45,8 @@ internal data class PlayerContentState(
     val soundModes: List<SoundModeUIState>,
     val selectedSoundModeIndex: Int,
     val subtitleSize: SubtitleSize,
+    val bluetoothAudioDelay: BluetoothAudioDelay = BluetoothAudioDelay.OFF,
+    val bluetoothSyncControlsVisible: Boolean = false,
 
     // Video settings
     val qualities: List<QualityUIState>,
@@ -94,6 +96,7 @@ internal data class SkipSegmentUIState(
 internal enum class ActivePanel {
     None,
     AudioSubtitles,
+    BluetoothSync,
     VideoSettings,
     Episodes,
 }

@@ -33,6 +33,7 @@ internal fun SettingsPanelColumn(
     onItemSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
     firstItemFocusRequester: FocusRequester? = null,
+    footer: (@Composable () -> Unit)? = null,
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
@@ -51,6 +52,7 @@ internal fun SettingsPanelColumn(
         )
 
         LazyColumn(
+            modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             itemsIndexed(items, key = { index, _ -> index }) { index, item ->
@@ -66,6 +68,8 @@ internal fun SettingsPanelColumn(
                 )
             }
         }
+
+        footer?.invoke()
     }
 }
 

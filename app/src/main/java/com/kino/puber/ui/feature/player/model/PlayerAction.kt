@@ -26,6 +26,11 @@ internal sealed class PlayerAction : UIAction {
     data class SelectSubtitle(val index: Int) : PlayerAction()
     data class SelectSoundMode(val index: Int) : PlayerAction()
     data object CycleSubtitleSize : PlayerAction()
+    data object OpenBluetoothSyncPanel : PlayerAction()
+    data object DelayBluetoothAudio : PlayerAction()
+    data object DelayBluetoothVideo : PlayerAction()
+    data object ResetBluetoothSync : PlayerAction()
+    data object SaveBluetoothSync : PlayerAction()
 
     // Video settings
     data class SelectQuality(val index: Int) : PlayerAction()

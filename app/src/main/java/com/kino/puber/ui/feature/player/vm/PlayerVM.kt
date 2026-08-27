@@ -27,6 +27,7 @@ import com.kino.puber.ui.feature.player.model.SkipSegmentUIState
 import com.kino.puber.ui.feature.player.model.ActivePanel
 import com.kino.puber.ui.feature.player.model.AudioTrackUIState
 import com.kino.puber.ui.feature.player.model.SubtitleTrackUIState
+import com.kino.puber.ui.feature.player.model.isOff
 import com.kino.puber.ui.feature.player.model.FocusTarget
 import com.kino.puber.ui.feature.player.model.PlayerAction
 import com.kino.puber.ui.feature.player.model.PlayPauseIndicatorState
@@ -192,13 +193,19 @@ internal class PlayerVM(
             val currentContent = (stateValue as? PlayerViewState.Content)?.content ?: return
             val previousSubtitle = currentContent.subtitleTracks
                 .getOrNull(currentContent.selectedSubtitleIndex)
-            val mergedSubtitleTracks = subtitleTrackMerger.merge(apiSubtitleTracks, subtitleTracks)
+            val previousPlayerTracks = currentContent.subtitleTracks.filter {
+                it.playerGroupIndex != null && it.playerTrackIndex != null
+            }
+            val effectivePlayerTracks = subtitleTracks.ifEmpty { previousPlayerTracks }
+            val mergedSubtitleTracks = subtitleTrackMerger.merge(apiSubtitleTracks, effectivePlayerTracks)
             val mergedSelectedIndex = previousSubtitle?.let { selectedTrack ->
                 audioTrackPreferenceResolver.findSubtitleTrackIndex(
                     tracks = mergedSubtitleTracks,
                     preferredLang = selectedTrack.language,
                     preferredUrl = selectedTrack.url,
                     preferredPlayerTrackId = selectedTrack.playerTrackId,
+                    preferredPlayerGroupIndex = selectedTrack.playerGroupIndex,
+                    preferredPlayerTrackIndex = selectedTrack.playerTrackIndex,
                 )
             }?.takeIf { it >= 0 } ?: 0
             updateContent {
@@ -211,7 +218,7 @@ internal class PlayerVM(
             }
             if (!tracksRestoredForCurrentMedia) {
                 tracksRestoredForCurrentMedia = true
-                if (!restoreTrackPreferences(hasDiscoveredSubtitleTracks = subtitleTracks.isNotEmpty())) {
+                if (!restoreTrackPreferences(hasDiscoveredSubtitleTracks = effectivePlayerTracks.isNotEmpty())) {
                     tracksRestoredForCurrentMedia = false
                 }
             }
@@ -311,9 +318,7 @@ internal class PlayerVM(
         ).copy(
             isMarkCurrentWatchedInFlight = watchedMutationsInFlight[token.key].orZero() > 0,
         )
-        apiSubtitleTracks = contentState.subtitleTracks
-
-        publishPreparedContent(contentState, resumeDialog)
+        showInitialContent(contentState, resumeDialog)
         autoMarkHandledToken = token.takeIf { resolved.isCurrentMediaWatched }
         episodeSwitchInProgress = false
         initializePlayer(savedPosition = if (resumeDialog != null) null else 0L)
@@ -322,15 +327,21 @@ internal class PlayerVM(
         loadSkipSegments(item, resolved.seasonNumber, resolved.episodeNumber, token)
     }
 
-    private fun publishPreparedContent(
+    private fun showInitialContent(
         contentState: PlayerContentState,
         resumeDialog: ResumeDialogState?,
     ) {
+        apiSubtitleTracks = contentState.subtitleTracks
         controlsHideJob?.cancel()
         controlsStateMachine.initialize(resumeDialogVisible = resumeDialog != null)
         updateViewState(
             PlayerViewState.Content(
-                contentState.withControlsState(controlsStateMachine.state),
+                contentState
+                    .copy(
+                        subtitleTracks = contentState.subtitleTracks.filter { it.isOff },
+                        selectedSubtitleIndex = 0,
+                    )
+                    .withControlsState(controlsStateMachine.state),
             ),
         )
     }
@@ -391,11 +402,15 @@ internal class PlayerVM(
             applyAudioTrackSelection(audioIndex, persist = false)
         }
 
-        val subtitleIndex = audioTrackPreferenceResolver.findSubtitleTrackIndex(
-            tracks = content.subtitleTracks,
-            preferredLang = subtitleLang,
-            preferredUrl = subtitleUrl,
-        )
+        val subtitleIndex = if (hasDiscoveredSubtitleTracks) {
+            audioTrackPreferenceResolver.findSubtitleTrackIndex(
+                tracks = content.subtitleTracks,
+                preferredLang = subtitleLang,
+                preferredUrl = subtitleUrl,
+            )
+        } else {
+            -1
+        }
         if (subtitleIndex >= 0) {
             applySubtitleSelection(subtitleIndex, persist = false)
         }
@@ -1400,6 +1415,7 @@ internal class PlayerVM(
             audioLabel = audioTrack?.label?.takeIf { it.isNotEmpty() },
             subtitleLang = subtitle?.language?.takeIf { it.isNotEmpty() },
             subtitleUrl = subtitle?.url?.takeIf { it.isNotEmpty() }
+                ?: subtitle?.playerTrackUri?.takeIf { it.isNotEmpty() }
                 ?: subtitle?.playerTrackId?.takeIf { it.isNotEmpty() },
         )
     }

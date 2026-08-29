@@ -18,8 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.Icon
@@ -86,8 +84,7 @@ private fun SettingsPanelItem(
 ) {
     Surface(
         onClick = onClick,
-        modifier = (focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier)
-            .semantics { this.selected = selected },
+        modifier = focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier,
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,
             focusedContainerColor = colors.primary.copy(alpha = 0.2f),

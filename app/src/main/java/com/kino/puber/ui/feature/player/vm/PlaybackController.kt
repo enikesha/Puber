@@ -27,7 +27,6 @@ import androidx.media3.exoplayer.source.BehindLiveWindowException
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.MergingMediaSource
-import androidx.media3.exoplayer.source.SingleSampleMediaSource
 import androidx.media3.exoplayer.trackselection.AdaptiveTrackSelection
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
@@ -423,6 +422,9 @@ internal class PlaybackController(
 
     // HlsMediaSource.Factory ignores MediaItem subtitle configurations, so an API subtitle
     // missing from the manifest would otherwise be unreachable on an HLS stream.
+    // DefaultMediaSourceFactory does this wrapping itself but cannot be told to enable
+    // chunkless HLS preparation, so the deprecated source is assembled by hand.
+    @Suppress("DEPRECATION")
     @OptIn(UnstableApi::class)
     private fun withSideLoadedSubtitles(
         source: MediaSource,
@@ -432,7 +434,7 @@ internal class PlaybackController(
         val subtitleConfigs = mediaItem.localConfiguration?.subtitleConfigurations.orEmpty()
         if (subtitleConfigs.isEmpty()) return source
         val subtitleSources = subtitleConfigs.map { config ->
-            SingleSampleMediaSource.Factory(dsFactory)
+            androidx.media3.exoplayer.source.SingleSampleMediaSource.Factory(dsFactory)
                 .setLoadErrorHandlingPolicy(HlsErrorPolicy())
                 .createMediaSource(config, C.TIME_UNSET)
         }
@@ -601,18 +603,16 @@ internal class PlaybackController(
         textGroups: List<Tracks.Group>,
         hlsSubtitles: List<HlsMultivariantPlaylist.Rendition>,
     ): List<SubtitleTrackUIState> {
-        var subtitleIndex = 0
+        var flatIndex = 0
         val textTrackCount = textGroups.sumOf { it.length }
         return textGroups.flatMapIndexed { groupIndex, group ->
             (0 until group.length).map { trackIndex ->
                 val format = group.getTrackFormat(trackIndex)
-                subtitleIndex += 1
                 buildSubtitleTrack(
-                    index = subtitleIndex,
                     format = format,
                     hlsRendition = findHlsRendition(
                         format = format,
-                        renditionIndex = subtitleIndex - 1,
+                        renditionIndex = flatIndex++,
                         textTrackCount = textTrackCount,
                         hlsSubtitles = hlsSubtitles,
                     ),
@@ -643,7 +643,6 @@ internal class PlaybackController(
     }
 
     private fun buildSubtitleTrack(
-        index: Int,
         format: Format,
         hlsRendition: HlsMultivariantPlaylist.Rendition?,
         groupIndex: Int,
@@ -654,7 +653,6 @@ internal class PlaybackController(
         val language = format.language ?: identityFormat?.language.orEmpty()
         // SubtitleLabeler builds every visible label once the full track list is known.
         return SubtitleTrackUIState(
-            index = index,
             label = "",
             language = language,
             url = "",

@@ -354,6 +354,7 @@ internal class PlayerVM(
     }
 
     private fun resetTrackRestoreState() {
+        tracksRestoredForCurrentMedia = false
         audioRestoredForCurrentMedia = false
         subtitleTracksDiscovered = false
         subtitleRestoreAttempts = 0
@@ -712,7 +713,6 @@ internal class PlayerVM(
 
         val position = playbackController.currentPosition
         updateContent { copy(selectedBufferPresetIndex = index) }
-        tracksRestoredForCurrentMedia = false
         resetTrackRestoreState()
         initializePlayer(savedPosition = position)
     }
@@ -724,7 +724,6 @@ internal class PlayerVM(
 
         val position = playbackController.currentPosition
         updateContent { copy(fastDnsEnabled = newValue) }
-        tracksRestoredForCurrentMedia = false
         resetTrackRestoreState()
         initializePlayer(savedPosition = position)
     }
@@ -756,7 +755,6 @@ internal class PlayerVM(
         creditsSegment = null
         dismissedSegmentType = null
         countdownDismissed = false
-        tracksRestoredForCurrentMedia = false
         resetTrackRestoreState()
 
         updateViewState(PlayerViewState.Loading)

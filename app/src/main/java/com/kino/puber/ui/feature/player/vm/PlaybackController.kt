@@ -35,11 +35,11 @@ import com.kino.puber.BuildConfig
 import com.kino.puber.R
 import com.kino.puber.data.api.models.SubtitleLink
 import com.kino.puber.data.repository.PlayerPreferencesRepository
+import com.kino.puber.domain.interactor.player.StreamSource
 import com.kino.puber.ui.feature.player.model.AudioTrackUIState
 import com.kino.puber.ui.feature.player.model.BufferPreset
 import com.kino.puber.ui.feature.player.model.SubtitleTrackUIState
 import com.kino.puber.ui.feature.player.model.isOff
-import java.net.URI
 import java.util.Locale
 import okhttp3.OkHttpClient
 
@@ -62,14 +62,14 @@ internal interface PlaybackControl {
 
     fun setCallback(callback: Callback)
     fun prepare(
-        streamUrl: String,
+        stream: StreamSource,
         subtitles: List<SubtitleLink>?,
         startPosition: Long?,
         bufferPreset: BufferPreset = BufferPreset.AUTO,
         fastDns: Boolean = true,
     )
 
-    fun switchStream(streamUrl: String, subtitles: List<SubtitleLink>?)
+    fun switchStream(stream: StreamSource, subtitles: List<SubtitleLink>?)
     fun play()
     fun pause()
     fun seekTo(positionMs: Long)
@@ -169,7 +169,7 @@ internal class PlaybackController(
 
     @OptIn(UnstableApi::class)
     override fun prepare(
-        streamUrl: String,
+        stream: StreamSource,
         subtitles: List<SubtitleLink>?,
         startPosition: Long?,
         bufferPreset: BufferPreset,
@@ -229,8 +229,7 @@ internal class PlaybackController(
             .apply { addListener(playerListener) }
         exoPlayer = player
 
-        val mediaItem = buildMediaItem(streamUrl, subtitles)
-        setMediaSource(player, mediaItem, streamUrl)
+        setMediaSource(player, buildMediaItem(stream, subtitles), stream)
 
         player.prepare()
         if (startPosition != null) {
@@ -254,12 +253,12 @@ internal class PlaybackController(
         ).setExperimentalEnableHagcPlayback(playerPreferencesRepository.hagcPlaybackEnabled)
     }
 
-    override fun switchStream(streamUrl: String, subtitles: List<SubtitleLink>?) {
+    override fun switchStream(stream: StreamSource, subtitles: List<SubtitleLink>?) {
         val player = exoPlayer ?: return
         val engine = ExoPlayerPlaybackEngine(player)
         PlaybackTransitions.switchStream(
             engine = engine,
-            streamUrl = streamUrl,
+            stream = stream,
             subtitles = subtitles,
         )
         notifyPlaybackState()
@@ -349,9 +348,9 @@ internal class PlaybackController(
         player.playWhenReady = true
     }
 
-    private fun buildMediaItem(streamUrl: String, subtitles: List<SubtitleLink>?): MediaItem {
-        val builder = MediaItem.Builder().setUri(streamUrl)
-        if (streamUrl.isHlsStreamUrl()) {
+    private fun buildMediaItem(stream: StreamSource, subtitles: List<SubtitleLink>?): MediaItem {
+        val builder = MediaItem.Builder().setUri(stream.url)
+        if (stream.isHls) {
             builder.setMimeType(MimeTypes.APPLICATION_M3U8)
         }
         // Every external subtitle is attached, including ones an HLS manifest may also
@@ -406,9 +405,9 @@ internal class PlaybackController(
     }
 
     @OptIn(UnstableApi::class)
-    private fun setMediaSource(player: ExoPlayer, mediaItem: MediaItem, streamUrl: String) {
+    private fun setMediaSource(player: ExoPlayer, mediaItem: MediaItem, stream: StreamSource) {
         val dsFactory = dataSourceFactory ?: return
-        if (!streamUrl.isHlsStreamUrl()) {
+        if (!stream.isHls) {
             // DefaultMediaSourceFactory side-loads the subtitle configurations itself.
             player.setMediaItem(mediaItem)
             return
@@ -543,8 +542,8 @@ internal class PlaybackController(
             player.stop()
         }
 
-        override fun setMediaSource(streamUrl: String, subtitles: List<SubtitleLink>?) {
-            setMediaSource(player, buildMediaItem(streamUrl, subtitles), streamUrl)
+        override fun setMediaSource(stream: StreamSource, subtitles: List<SubtitleLink>?) {
+            setMediaSource(player, buildMediaItem(stream, subtitles), stream)
         }
 
         override fun restoreTrackSelection() {
@@ -711,17 +710,3 @@ internal class PlaybackController(
         const val BITS_PER_MEGABIT = 1_000_000.0
     }
 }
-
-// Matches only the URL path: a host such as "hls.cdn.example" or a query
-// parameter must not turn a progressive stream into an HLS one, because the
-// answer also decides whether API subtitles are side-loaded.
-internal fun String.isHlsStreamUrl(): Boolean {
-    val path = runCatching { URI(this).path }.getOrNull()
-        ?: substringBefore('?').substringBefore('#').substringAfter("://").substringAfter('/', "")
-    if (path.isEmpty()) return false
-    if (path.endsWith(M3U8_EXTENSION, ignoreCase = true)) return true
-    return path.split('/').any { segment -> HLS_PATH_SEGMENT.matches(segment) }
-}
-
-private const val M3U8_EXTENSION = ".m3u8"
-private val HLS_PATH_SEGMENT = Regex("""hls\d*""", RegexOption.IGNORE_CASE)

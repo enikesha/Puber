@@ -9,8 +9,12 @@ internal class AudioTrackPreferenceResolver {
         tracks: List<AudioTrackUIState>,
         preferredLabel: String?,
         preferredLang: String?,
+        preferOriginal: Boolean = false,
     ): Int {
-        val matchers = listOf(
+        // The original track is remembered by kind, so it wins over the saved label and language:
+        // both describe the previous title, whose original was spoken in another language.
+        val matchers = listOfNotNull(
+            { originalMatch(tracks) }.takeIf { preferOriginal },
             { exactLabelMatch(tracks, preferredLabel) },
             { normalizedLabelMatch(tracks, preferredLabel) },
             { voiceTypeAndLanguageMatch(tracks, preferredLabel, preferredLang) },
@@ -50,6 +54,10 @@ internal class AudioTrackPreferenceResolver {
     ): Int {
         val preferredKey = preferredUrl?.stableSubtitleKey() ?: return NO_MATCH
         return tracks.indexOfFirst { it.url.stableSubtitleKey() == preferredKey }
+    }
+
+    private fun originalMatch(tracks: List<AudioTrackUIState>): Int {
+        return tracks.indexOfFirst { it.isOriginal }
     }
 
     private fun exactLabelMatch(

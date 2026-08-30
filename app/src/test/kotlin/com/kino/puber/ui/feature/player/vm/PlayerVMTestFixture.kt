@@ -73,11 +73,12 @@ internal abstract class PlayerVMTestFixture {
         every { interactor.getPreferredAudioLang(any()) } returns null
         every { interactor.getPreferredSubtitleLang(any()) } returns null
         every { interactor.getPreferredSubtitleUrl(any()) } returns null
+        every { interactor.isPreferredAudioOriginal() } returns false
         every { interactor.isDebugOverlayEnabled() } returns false
         every { interactor.getSubtitleSize() } returns SubtitleSize.MEDIUM
         every { interactor.getBufferPreset() } returns BufferPreset.AUTO
         every { interactor.isFastDnsEnabled() } returns true
-        every { interactor.savePreferredAudioTrack(any(), any()) } returns Unit
+        every { interactor.savePreferredAudioTrack(any(), any(), any()) } returns Unit
         every { interactor.savePreferredSubtitleTrack(any(), any()) } returns Unit
         every { interactor.findNextEpisode(any(), any(), any()) } returns null
         every { interactor.findPreviousEpisode(any(), any(), any()) } returns null

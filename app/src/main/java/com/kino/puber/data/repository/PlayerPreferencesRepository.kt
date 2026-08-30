@@ -34,9 +34,18 @@ class PlayerPreferencesRepository(context: Context) {
             ?: prefs.getString("${KEY_AUDIO_LABEL_PREFIX}$itemId", null)
     }
 
+    /**
+     * True when the remembered audio track was the original one. The original track carries a
+     * different language in every title, so it is restored by kind instead of by language.
+     */
+    fun isPreferredAudioOriginal(): Boolean {
+        return prefs.getBoolean(KEY_AUDIO_ORIGINAL, false)
+    }
+
     fun savePreferredAudioTrack(
         audioLang: String?,
         audioLabel: String?,
+        isOriginal: Boolean,
     ) {
         prefs.edit().apply {
             if (audioLang != null) {
@@ -49,6 +58,7 @@ class PlayerPreferencesRepository(context: Context) {
             } else {
                 remove(KEY_AUDIO_LABEL)
             }
+            putBoolean(KEY_AUDIO_ORIGINAL, isOriginal)
             apply()
         }
     }
@@ -122,6 +132,7 @@ class PlayerPreferencesRepository(context: Context) {
         const val KEY_AUDIO_LABEL = "preferred_audio_label"
         const val KEY_SUBTITLE_LANG = "preferred_subtitle_lang"
         const val KEY_SUBTITLE_URL = "preferred_subtitle_url"
+        const val KEY_AUDIO_ORIGINAL = "preferred_audio_original"
         const val KEY_SUBTITLE_SIZE = "subtitle_size"
         const val KEY_SKIP_INTRO = "skip_intro_enabled"
         const val KEY_SKIP_RECAP = "skip_recap_enabled"

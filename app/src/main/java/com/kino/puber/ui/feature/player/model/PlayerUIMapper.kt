@@ -33,6 +33,11 @@ internal class PlayerUIMapper(
                 index = index,
                 label = label,
                 language = audio.lang ?: "",
+                isOriginal = isOriginalAudioTrack(
+                    audio.type?.title,
+                    audio.type?.shortTitle,
+                    audio.author?.title,
+                ),
             )
         } ?: emptyList()
     }

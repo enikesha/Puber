@@ -7,6 +7,7 @@ internal data class AudioTrackUIState(
     val index: Int,
     val label: String,
     val language: String,
+    val isOriginal: Boolean = false,
 )
 
 @Immutable

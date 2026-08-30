@@ -259,9 +259,37 @@ internal class PlayerVMTest : PlayerVMTestFixture() {
     @Test
     fun selectTrack_savesLangToPrefs() {
         startedVM().onAction(PlayerAction.SelectAudioTrack(1))
-        verify { interactor.savePreferredAudioTrack("rus", "Russian") }
+        verify { interactor.savePreferredAudioTrack("rus", "Russian", false) }
         verify(exactly = 0) { interactor.savePreferredSubtitleTrack(any(), any()) }
     }
+
+    @Test
+    fun selectOriginalTrack_remembersItByKind() {
+        val vm = startedVM()
+        callbackSlot.captured.onTracksUpdated(originalTitleTracks, 0)
+
+        vm.onAction(PlayerAction.SelectAudioTrack(1))
+
+        verify { interactor.savePreferredAudioTrack("kor", "02. Оригинал (KOR)", true) }
+    }
+
+    @Test
+    fun tracksUpdated_restoresTheOriginalTrackOfAnotherLanguage() {
+        every { interactor.isPreferredAudioOriginal() } returns true
+        every { interactor.getPreferredAudioLang(42) } returns "eng"
+        every { interactor.getPreferredAudioLabel(42) } returns "01. Оригинал (ENG)"
+        val vm = startedVM()
+
+        callbackSlot.captured.onTracksUpdated(originalTitleTracks, 0)
+
+        verify { playbackController.selectAudioTrack(1) }
+        assertEquals(1, contentState(vm).selectedAudioTrackIndex)
+    }
+
+    private val originalTitleTracks = listOf(
+        AudioTrackUIState(0, "01. Дубляж (ENG)", "eng"),
+        AudioTrackUIState(1, "02. Оригинал (KOR)", "kor", isOriginal = true),
+    )
 
     // endregion
 
@@ -710,7 +738,7 @@ internal class PlayerVMTest : PlayerVMTestFixture() {
                 "https://test/subtitles/rus.vtt",
             )
         }
-        verify(exactly = 0) { interactor.savePreferredAudioTrack(any(), any()) }
+        verify(exactly = 0) { interactor.savePreferredAudioTrack(any(), any(), any()) }
     }
 
     @Test
@@ -787,7 +815,7 @@ internal class PlayerVMTest : PlayerVMTestFixture() {
 
         verify { playbackController.selectAudioTrack(1) }
         verify { playbackController.selectSubtitle(testSubtitleTracks[2]) }
-        verify(exactly = 0) { interactor.savePreferredAudioTrack(any(), any()) }
+        verify(exactly = 0) { interactor.savePreferredAudioTrack(any(), any(), any()) }
         verify(exactly = 0) { interactor.savePreferredSubtitleTrack(any(), any()) }
         assertEquals(1, contentState(vm).selectedAudioTrackIndex)
         assertEquals(2, contentState(vm).selectedSubtitleIndex)

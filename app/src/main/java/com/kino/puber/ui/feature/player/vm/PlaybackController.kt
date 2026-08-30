@@ -33,6 +33,7 @@ import com.kino.puber.R
 import com.kino.puber.data.api.models.SubtitleLink
 import com.kino.puber.data.repository.PlayerPreferencesRepository
 import com.kino.puber.ui.feature.player.model.AudioTrackUIState
+import com.kino.puber.ui.feature.player.model.isOriginalAudioTrack
 import com.kino.puber.ui.feature.player.model.BufferPreset
 import com.kino.puber.ui.feature.player.model.SubtitleTrackUIState
 import java.util.Locale
@@ -542,6 +543,7 @@ internal class PlaybackController(
                 index = index,
                 label = label,
                 language = format.language ?: "",
+                isOriginal = isOriginalAudioTrack(format.label),
             )
         }
         val selectedIndex = audioGroups.indexOfFirst { it.isSelected }.coerceAtLeast(0)

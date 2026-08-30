@@ -1,73 +1,99 @@
 package com.kino.puber.data.repository
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.kino.puber.domain.model.SubtitleSize
+import com.kino.puber.domain.model.TrackPreferenceScope
 import com.kino.puber.ui.feature.player.model.BufferPreset
 
 class PlayerPreferencesRepository(context: Context) {
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
+    var trackPreferenceScope: TrackPreferenceScope
+        get() {
+            val ordinal = prefs.getInt(KEY_TRACK_PREFERENCE_SCOPE, TrackPreferenceScope.GLOBAL.ordinal)
+            return TrackPreferenceScope.entries.getOrElse(ordinal) { TrackPreferenceScope.GLOBAL }
+        }
+        set(value) = prefs.edit().putInt(KEY_TRACK_PREFERENCE_SCOPE, value.ordinal).apply()
+
     fun getPreferredAudioLang(itemId: Int): String? {
-        return prefs.getString(KEY_AUDIO_LANG, null)
-            ?: prefs.getString("${KEY_AUDIO_LANG_PREFIX}$itemId", null)
-    }
-
-    fun getPreferredSubtitleLang(itemId: Int): String? {
-        return if (prefs.contains(KEY_SUBTITLE_LANG)) {
-            prefs.getString(KEY_SUBTITLE_LANG, null)
-        } else {
-            prefs.getString("${KEY_SUBTITLE_LANG_PREFIX}$itemId", null)
-        }
-    }
-
-    fun getPreferredSubtitleUrl(itemId: Int): String? {
-        return if (prefs.contains(KEY_SUBTITLE_URL)) {
-            prefs.getString(KEY_SUBTITLE_URL, null)
-        } else {
-            prefs.getString("${KEY_SUBTITLE_URL_PREFIX}$itemId", null)
-        }
+        return readScoped(itemId, KEY_AUDIO_LANG, KEY_AUDIO_LANG_PREFIX)
     }
 
     fun getPreferredAudioLabel(itemId: Int): String? {
-        return prefs.getString(KEY_AUDIO_LABEL, null)
-            ?: prefs.getString("${KEY_AUDIO_LABEL_PREFIX}$itemId", null)
+        return readScoped(itemId, KEY_AUDIO_LABEL, KEY_AUDIO_LABEL_PREFIX)
     }
 
     /**
      * True when the remembered audio track was the original one. The original track carries a
      * different language in every title, so it is restored by kind instead of by language.
      */
-    fun isPreferredAudioOriginal(): Boolean {
-        return prefs.getBoolean(KEY_AUDIO_ORIGINAL, false)
+    fun isPreferredAudioOriginal(itemId: Int): Boolean {
+        return readScoped(itemId, KEY_AUDIO_ORIGINAL, KEY_AUDIO_ORIGINAL_PREFIX).toBoolean()
+    }
+
+    fun getPreferredSubtitleLang(itemId: Int): String? {
+        return readScoped(itemId, KEY_SUBTITLE_LANG, KEY_SUBTITLE_LANG_PREFIX)
+    }
+
+    fun getPreferredSubtitleUrl(itemId: Int): String? {
+        return readScoped(itemId, KEY_SUBTITLE_URL, KEY_SUBTITLE_URL_PREFIX)
     }
 
     fun savePreferredAudioTrack(
+        itemId: Int,
         audioLang: String?,
         audioLabel: String?,
         isOriginal: Boolean,
     ) {
         prefs.edit().apply {
-            if (audioLang != null) {
-                putString(KEY_AUDIO_LANG, audioLang)
-            } else {
-                remove(KEY_AUDIO_LANG)
-            }
-            if (audioLabel != null) {
-                putString(KEY_AUDIO_LABEL, audioLabel)
-            } else {
-                remove(KEY_AUDIO_LABEL)
-            }
-            putBoolean(KEY_AUDIO_ORIGINAL, isOriginal)
+            writeScoped(itemId, KEY_AUDIO_LANG, KEY_AUDIO_LANG_PREFIX, audioLang)
+            writeScoped(itemId, KEY_AUDIO_LABEL, KEY_AUDIO_LABEL_PREFIX, audioLabel)
+            writeScoped(
+                itemId,
+                KEY_AUDIO_ORIGINAL,
+                KEY_AUDIO_ORIGINAL_PREFIX,
+                isOriginal.toString().takeIf { isOriginal },
+            )
             apply()
         }
     }
 
-    fun savePreferredSubtitleTrack(subtitleLang: String, subtitleUrl: String) {
-        prefs.edit()
-            .putString(KEY_SUBTITLE_LANG, subtitleLang)
-            .putString(KEY_SUBTITLE_URL, subtitleUrl)
-            .apply()
+    fun savePreferredSubtitleTrack(itemId: Int, subtitleLang: String, subtitleUrl: String) {
+        prefs.edit().apply {
+            writeScoped(itemId, KEY_SUBTITLE_LANG, KEY_SUBTITLE_LANG_PREFIX, subtitleLang)
+            writeScoped(itemId, KEY_SUBTITLE_URL, KEY_SUBTITLE_URL_PREFIX, subtitleUrl)
+            apply()
+        }
+    }
+
+    /**
+     * Reads the entry the active scope owns and falls back to the other one, so switching the
+     * scope keeps whatever was already remembered instead of starting from nothing.
+     */
+    private fun readScoped(itemId: Int, globalKey: String, itemKeyPrefix: String): String? {
+        val key = scopedKeys(itemId, globalKey, itemKeyPrefix).firstOrNull { prefs.contains(it) }
+            ?: return null
+        return prefs.getString(key, null)
+    }
+
+    private fun SharedPreferences.Editor.writeScoped(
+        itemId: Int,
+        globalKey: String,
+        itemKeyPrefix: String,
+        value: String?,
+    ) {
+        val key = scopedKeys(itemId, globalKey, itemKeyPrefix).first()
+        if (value != null) putString(key, value) else remove(key)
+    }
+
+    private fun scopedKeys(itemId: Int, globalKey: String, itemKeyPrefix: String): List<String> {
+        val itemKey = "$itemKeyPrefix$itemId"
+        return when (trackPreferenceScope) {
+            TrackPreferenceScope.GLOBAL -> listOf(globalKey, itemKey)
+            TrackPreferenceScope.PER_TITLE -> listOf(itemKey, globalKey)
+        }
     }
 
     fun getSubtitleSize(): SubtitleSize {
@@ -133,6 +159,8 @@ class PlayerPreferencesRepository(context: Context) {
         const val KEY_SUBTITLE_LANG = "preferred_subtitle_lang"
         const val KEY_SUBTITLE_URL = "preferred_subtitle_url"
         const val KEY_AUDIO_ORIGINAL = "preferred_audio_original"
+        const val KEY_AUDIO_ORIGINAL_PREFIX = "audio_original_"
+        const val KEY_TRACK_PREFERENCE_SCOPE = "track_preference_scope"
         const val KEY_SUBTITLE_SIZE = "subtitle_size"
         const val KEY_SKIP_INTRO = "skip_intro_enabled"
         const val KEY_SKIP_RECAP = "skip_recap_enabled"

@@ -1,6 +1,7 @@
 package com.kino.puber.ui.feature.player.model
 
 import androidx.compose.runtime.Immutable
+import com.kino.puber.domain.model.TrackPreferenceScope
 
 @Immutable
 internal data class AudioTrackUIState(
@@ -16,6 +17,13 @@ internal data class SubtitleTrackUIState(
     val label: String,
     val language: String,
     val url: String,
+)
+
+@Immutable
+internal data class TrackPreferenceScopeUIState(
+    val index: Int,
+    val label: String,
+    val scope: TrackPreferenceScope,
 )
 
 @Immutable

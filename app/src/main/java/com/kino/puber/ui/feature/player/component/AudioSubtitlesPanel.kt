@@ -32,6 +32,7 @@ import com.kino.puber.R
 import com.kino.puber.ui.feature.player.model.AudioTrackUIState
 import com.kino.puber.ui.feature.player.model.SoundModeUIState
 import com.kino.puber.ui.feature.player.model.SubtitleTrackUIState
+import com.kino.puber.ui.feature.player.model.TrackPreferenceScopeUIState
 
 @Composable
 internal fun AudioSubtitlesPanel(
@@ -43,9 +44,12 @@ internal fun AudioSubtitlesPanel(
     selectedAudioTrackIndex: Int,
     subtitleTracks: List<SubtitleTrackUIState>,
     selectedSubtitleIndex: Int,
+    trackPreferenceScopes: List<TrackPreferenceScopeUIState>,
+    selectedTrackPreferenceScopeIndex: Int,
     onSoundModeSelected: (Int) -> Unit,
     onAudioTrackSelected: (Int) -> Unit,
     onSubtitleSelected: (Int) -> Unit,
+    onTrackPreferenceScopeSelected: (Int) -> Unit,
     onSubtitleSizeClick: () -> Unit,
     onBackPressed: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -75,11 +79,14 @@ internal fun AudioSubtitlesPanel(
                 selectedAudioTrackIndex = selectedAudioTrackIndex,
                 subtitleTracks = subtitleTracks,
                 selectedSubtitleIndex = selectedSubtitleIndex,
+                trackPreferenceScopes = trackPreferenceScopes,
+                selectedTrackPreferenceScopeIndex = selectedTrackPreferenceScopeIndex,
                 panelFocusRequester = panelFocusRequester,
                 initialFocusTarget = initialFocusTarget,
                 onSoundModeSelected = onSoundModeSelected,
                 onAudioTrackSelected = onAudioTrackSelected,
                 onSubtitleSelected = onSubtitleSelected,
+                onTrackPreferenceScopeSelected = onTrackPreferenceScopeSelected,
             )
             SubtitleSizeButton(
                 onClick = onSubtitleSizeClick,
@@ -125,11 +132,14 @@ private fun AudioSubtitlesColumns(
     selectedAudioTrackIndex: Int,
     subtitleTracks: List<SubtitleTrackUIState>,
     selectedSubtitleIndex: Int,
+    trackPreferenceScopes: List<TrackPreferenceScopeUIState>,
+    selectedTrackPreferenceScopeIndex: Int,
     panelFocusRequester: FocusRequester,
     initialFocusTarget: AudioSubtitlesFocusTarget,
     onSoundModeSelected: (Int) -> Unit,
     onAudioTrackSelected: (Int) -> Unit,
     onSubtitleSelected: (Int) -> Unit,
+    onTrackPreferenceScopeSelected: (Int) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -154,6 +164,11 @@ private fun AudioSubtitlesColumns(
             selectedSubtitleIndex,
             panelFocusRequester.takeIf { initialFocusTarget == AudioSubtitlesFocusTarget.Subtitle },
             onSubtitleSelected,
+        )
+        TrackPreferenceScopeColumn(
+            trackPreferenceScopes,
+            selectedTrackPreferenceScopeIndex,
+            onTrackPreferenceScopeSelected,
         )
     }
 }
@@ -211,6 +226,23 @@ private fun RowScope.SubtitleColumn(
         onItemSelected = onSubtitleSelected,
         modifier = Modifier.weight(1f),
         firstItemFocusRequester = panelFocusRequester,
+    )
+}
+
+@Composable
+private fun RowScope.TrackPreferenceScopeColumn(
+    scopes: List<TrackPreferenceScopeUIState>,
+    selectedIndex: Int,
+    onScopeSelected: (Int) -> Unit,
+) {
+    if (scopes.isEmpty()) return
+    val labels = remember(scopes) { scopes.map { it.label } }
+    SettingsPanelColumn(
+        header = stringResource(R.string.player_panel_remember),
+        items = labels,
+        selectedIndex = selectedIndex,
+        onItemSelected = onScopeSelected,
+        modifier = Modifier.weight(1f),
     )
 }
 

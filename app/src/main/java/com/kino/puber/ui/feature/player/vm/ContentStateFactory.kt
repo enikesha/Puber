@@ -3,7 +3,6 @@ package com.kino.puber.ui.feature.player.vm
 import com.kino.puber.data.api.models.Item
 import com.kino.puber.domain.interactor.player.ResolvedMedia
 import com.kino.puber.domain.model.SubtitleSize
-import com.kino.puber.domain.model.TrackPreferenceScope
 import com.kino.puber.ui.feature.player.model.ActivePanel
 import com.kino.puber.ui.feature.player.model.BufferPreset
 import com.kino.puber.ui.feature.player.model.FocusTarget
@@ -21,9 +20,7 @@ internal class ContentStateFactory(private val mapper: PlayerUIMapper) {
         subtitleSize: SubtitleSize,
         savedBufferPreset: BufferPreset = BufferPreset.AUTO,
         fastDnsEnabled: Boolean = true,
-        trackPreferenceScope: TrackPreferenceScope = TrackPreferenceScope.GLOBAL,
     ): PlayerContentState {
-        val trackPreferenceScopes = mapper.mapTrackPreferenceScopes()
         return PlayerContentState(
             title = mapper.buildTitle(item, resolved.seasonNumber, resolved.episodeNumber),
             subtitle = mapper.buildSubtitle(item, resolved.seasonNumber, resolved.episodeNumber, resolved.episodeTitle),
@@ -49,10 +46,6 @@ internal class ContentStateFactory(private val mapper: PlayerUIMapper) {
             soundModes = listOf(SoundModeUIState(0, mapper.defaultSoundModeLabel())),
             selectedSoundModeIndex = 0,
             subtitleSize = subtitleSize,
-            trackPreferenceScopes = trackPreferenceScopes,
-            selectedTrackPreferenceScopeIndex = trackPreferenceScopes
-                .indexOfFirst { it.scope == trackPreferenceScope }
-                .coerceAtLeast(0),
             qualities = mapper.mapQualities(resolved.files),
             selectedQualityIndex = 0,
             speeds = PlayerUIMapper.SPEEDS,

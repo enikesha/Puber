@@ -10,7 +10,6 @@ import com.kino.puber.data.api.models.ItemType
 import com.kino.puber.data.api.models.SkipSegment
 import com.kino.puber.data.api.models.SkipSegmentType
 import com.kino.puber.domain.model.SubtitleSize
-import com.kino.puber.domain.model.TrackPreferenceScope
 import com.kino.puber.ui.ScreensImpl
 import com.kino.puber.ui.feature.player.model.ActivePanel
 import com.kino.puber.ui.feature.player.model.AudioTrackUIState
@@ -285,26 +284,6 @@ internal class PlayerVMTest : PlayerVMTestFixture() {
 
         verify { playbackController.selectAudioTrack(1) }
         assertEquals(1, contentState(vm).selectedAudioTrackIndex)
-    }
-
-    @Test
-    fun selectTrackPreferenceScope_persistsTheScopeAndTheCurrentSelections() {
-        val vm = startedVM()
-
-        vm.onAction(PlayerAction.SelectTrackPreferenceScope(1))
-
-        assertEquals(1, contentState(vm).selectedTrackPreferenceScopeIndex)
-        verify { interactor.saveTrackPreferenceScope(TrackPreferenceScope.PER_TITLE) }
-        verify { interactor.savePreferredAudioTrack(42, "eng", "English", false) }
-        verify { interactor.savePreferredSubtitleTrack(42, "", "") }
-    }
-
-    @Test
-    fun selectTrackPreferenceScope_ignoresTheScopeThatIsAlreadyActive() {
-        startedVM().onAction(PlayerAction.SelectTrackPreferenceScope(0))
-
-        verify(exactly = 0) { interactor.saveTrackPreferenceScope(any()) }
-        verify(exactly = 0) { interactor.savePreferredAudioTrack(any(), any(), any(), any()) }
     }
 
     private val originalTitleTracks = listOf(

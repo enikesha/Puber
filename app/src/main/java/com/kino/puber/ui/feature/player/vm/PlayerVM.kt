@@ -286,7 +286,6 @@ internal class PlayerVM(
             subtitleSize = interactor.getSubtitleSize(),
             savedBufferPreset = interactor.getBufferPreset(),
             fastDnsEnabled = interactor.isFastDnsEnabled(),
-            trackPreferenceScope = interactor.getTrackPreferenceScope(),
         ).copy(
             isMarkCurrentWatchedInFlight = watchedMutationsInFlight[token.key].orZero() > 0,
         )
@@ -403,7 +402,6 @@ internal class PlayerVM(
             is PlayerAction.SelectSubtitle -> applySubtitleSelection(action.index)
             is PlayerAction.SelectSoundMode -> selectSoundMode(action.index)
             is PlayerAction.CycleSubtitleSize -> cycleSubtitleSize()
-            is PlayerAction.SelectTrackPreferenceScope -> applyTrackPreferenceScope(action.index)
             is PlayerAction.SelectQuality -> selectQuality(action.index)
             is PlayerAction.SelectSpeed -> selectSpeed(action.index)
             is PlayerAction.SelectAspectRatio -> selectAspectRatio(action.index)
@@ -602,24 +600,6 @@ internal class PlayerVM(
             subtitleLang = subtitle.language,
             subtitleUrl = subtitle.url,
         )
-    }
-
-    /**
-     * Switching the scope re-persists what is playing under the new scope, so the mode the
-     * viewer just picked starts from the selection they can see instead of an older one.
-     */
-    private fun applyTrackPreferenceScope(index: Int) {
-        val currentState = (stateValue as? PlayerViewState.Content)?.content ?: return
-        val scope = currentState.trackPreferenceScopes.getOrNull(index)?.scope ?: return
-        if (currentState.selectedTrackPreferenceScopeIndex == index) return
-        interactor.saveTrackPreferenceScope(scope)
-        updateContent {
-            copy(selectedTrackPreferenceScopeIndex = index)
-        }
-        currentState.audioTracks.getOrNull(currentState.selectedAudioTrackIndex)
-            ?.let(::saveAudioTrackPreference)
-        currentState.subtitleTracks.getOrNull(currentState.selectedSubtitleIndex)
-            ?.let(::saveSubtitlePreference)
     }
 
     private fun cycleSubtitleSize() {

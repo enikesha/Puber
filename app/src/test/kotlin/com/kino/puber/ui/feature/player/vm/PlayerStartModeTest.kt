@@ -8,7 +8,6 @@ import com.kino.puber.domain.interactor.player.PlayerInteractor
 import com.kino.puber.domain.interactor.player.ResolvedMedia
 import com.kino.puber.domain.interactor.player.SkipSegmentInteractor
 import com.kino.puber.domain.model.SubtitleSize
-import com.kino.puber.domain.model.TrackPreferenceScope
 import com.kino.puber.ui.ScreensImpl
 import com.kino.puber.ui.feature.player.model.BufferPreset
 import com.kino.puber.ui.feature.player.model.PlayerContentState
@@ -87,14 +86,13 @@ internal class PlayerStartModeTest {
         coEvery { interactor.getItemDetails(item.id) } returns item
         every { interactor.resolveMedia(item, 1, 1, null) } returns savedMedia
         every {
-            contentStateFactory.build(any(), any(), any(), any(), any(), any(), any())
+            contentStateFactory.build(any(), any(), any(), any(), any(), any())
         } returns contentState
         every { interactor.selectStreamUrl(any(), any()) } returns "https://test/v.m3u8"
         every { interactor.isDebugOverlayEnabled() } returns false
         every { interactor.getSubtitleSize() } returns SubtitleSize.MEDIUM
         every { interactor.getBufferPreset() } returns BufferPreset.AUTO
         every { interactor.isFastDnsEnabled() } returns true
-        every { interactor.getTrackPreferenceScope() } returns TrackPreferenceScope.GLOBAL
         coEvery { skipSegmentInteractor.loadSegments(any(), any(), any()) } returns emptyList()
         every { skipSegmentInteractor.findCreditsSegment(any()) } returns null
         every { mapper.formatTime(any()) } returns "2:00"
@@ -118,7 +116,6 @@ internal class PlayerStartModeTest {
                 subtitleSize = SubtitleSize.MEDIUM,
                 savedBufferPreset = BufferPreset.AUTO,
                 fastDnsEnabled = true,
-                trackPreferenceScope = TrackPreferenceScope.GLOBAL,
             )
         }
         verify {
@@ -149,7 +146,6 @@ internal class PlayerStartModeTest {
                 subtitleSize = SubtitleSize.MEDIUM,
                 savedBufferPreset = BufferPreset.AUTO,
                 fastDnsEnabled = true,
-                trackPreferenceScope = TrackPreferenceScope.GLOBAL,
             )
         }
         verify {

@@ -20,6 +20,7 @@ import com.kino.puber.domain.interactor.device.DeviceSettingType
 import com.kino.puber.domain.interactor.device.IDeviceInfoInteractor
 import com.kino.puber.domain.interactor.device.IDeviceSettingInteractor
 import com.kino.puber.domain.interactor.update.IAppUpdateInteractor
+import com.kino.puber.domain.model.TrackPreferenceScope
 import com.kino.puber.ui.feature.device.settings.mappers.DeviceCapabilities
 import com.kino.puber.ui.feature.device.settings.mappers.DeviceUiSettingsMapper
 import com.kino.puber.ui.feature.device.settings.model.DeviceSettingUIModel
@@ -81,6 +82,7 @@ internal class DeviceSettingsVM(
                                 discardEmbeddedArtworkMetadata =
                                     playerPreferencesRepository.discardEmbeddedArtworkMetadata,
                                 hagcPlaybackEnabled = playerPreferencesRepository.hagcPlaybackEnabled,
+                                trackPreferenceScope = playerPreferencesRepository.trackPreferenceScope,
                                 navigationMode = navigationPreferencesRepository.getNavigationMode(),
                                 showCartoonsTab = contentPreferences.showCartoonsTab,
                                 showAnimeTab = contentPreferences.showAnimeTab,
@@ -113,6 +115,8 @@ internal class DeviceSettingsVM(
             DeviceSettingsActions.ToggleDiscardEmbeddedArtworkMetadata ->
                 toggleDiscardEmbeddedArtworkMetadata()
             DeviceSettingsActions.ToggleHagcPlayback -> toggleHagcPlayback()
+            is DeviceSettingsActions.ChangeTrackPreferenceScope ->
+                changeTrackPreferenceScope(action.scope)
             is DeviceSettingsActions.ChangeNavigationMode -> onChangeNavigationMode(action.mode)
             DeviceSettingsActions.ToggleCartoonsTab -> toggleCartoonsTab()
             DeviceSettingsActions.ToggleAnimeTab -> toggleAnimeTab()
@@ -301,6 +305,14 @@ internal class DeviceSettingsVM(
         val newValue = !currentState.hagcPlaybackEnabled
         playerPreferencesRepository.hagcPlaybackEnabled = newValue
         updateViewState(stateValue.copy(state = currentState.copy(hagcPlaybackEnabled = newValue)))
+    }
+
+    private fun changeTrackPreferenceScope(scope: TrackPreferenceScope) {
+        val currentState = stateValue.state
+        if (currentState !is DeviceSettingsState.Success) return
+        if (currentState.trackPreferenceScope == scope) return
+        playerPreferencesRepository.trackPreferenceScope = scope
+        updateViewState(stateValue.copy(state = currentState.copy(trackPreferenceScope = scope)))
     }
 
     private fun onChangeNavigationMode(mode: NavigationMode) {

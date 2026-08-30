@@ -29,15 +29,9 @@ internal fun PlayerSettingsPanels(
         selectedAudioTrackIndex = content.selectedAudioTrackIndex,
         subtitleTracks = content.subtitleTracks,
         selectedSubtitleIndex = content.selectedSubtitleIndex,
-        trackPreferenceScopes = content.trackPreferenceScopes,
-        selectedTrackPreferenceScopeIndex = content.selectedTrackPreferenceScopeIndex,
         onSoundModeSelected = rememberIndexedAction(onAction, PlayerAction::SelectSoundMode),
         onAudioTrackSelected = rememberIndexedAction(onAction, PlayerAction::SelectAudioTrack),
         onSubtitleSelected = rememberIndexedAction(onAction, PlayerAction::SelectSubtitle),
-        onTrackPreferenceScopeSelected = rememberIndexedAction(
-            onAction,
-            PlayerAction::SelectTrackPreferenceScope,
-        ),
         onSubtitleSizeClick = rememberAction(onAction, PlayerAction.CycleSubtitleSize),
         onBackPressed = rememberAction(onAction, PlayerAction.ClosePanel),
     )

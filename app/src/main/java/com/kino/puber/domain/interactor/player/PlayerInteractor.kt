@@ -10,7 +10,6 @@ import com.kino.puber.data.api.models.VideoFile
 import com.kino.puber.data.repository.ItemDetailsRepository
 import com.kino.puber.data.repository.PlayerPreferencesRepository
 import com.kino.puber.domain.model.SubtitleSize
-import com.kino.puber.domain.model.TrackPreferenceScope
 import com.kino.puber.ui.feature.player.model.BufferPreset
 import kotlinx.coroutines.CancellationException
 
@@ -336,14 +335,6 @@ internal class PlayerInteractor(
             subtitleLang = subtitleLang.orEmpty(),
             subtitleUrl = subtitleUrl.orEmpty(),
         )
-    }
-
-    fun getTrackPreferenceScope(): TrackPreferenceScope {
-        return playerPreferencesRepository.trackPreferenceScope
-    }
-
-    fun saveTrackPreferenceScope(scope: TrackPreferenceScope) {
-        playerPreferencesRepository.trackPreferenceScope = scope
     }
 
     fun isDebugOverlayEnabled(): Boolean {

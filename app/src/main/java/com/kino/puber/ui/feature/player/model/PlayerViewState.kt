@@ -45,8 +45,6 @@ internal data class PlayerContentState(
     val soundModes: List<SoundModeUIState>,
     val selectedSoundModeIndex: Int,
     val subtitleSize: SubtitleSize,
-    val trackPreferenceScopes: List<TrackPreferenceScopeUIState>,
-    val selectedTrackPreferenceScopeIndex: Int,
 
     // Video settings
     val qualities: List<QualityUIState>,

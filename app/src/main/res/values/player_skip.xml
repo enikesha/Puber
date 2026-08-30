@@ -18,6 +18,16 @@
     <string name="settings_prefer_surround_audio">Объемный звук (AC3)</string>
     <string name="settings_watched_indicators">Показывать отметки просмотренного</string>
 
+    <!-- Remembered audio and subtitle tracks -->
+    <string name="settings_track_preference_scope_title">Запоминать дорожки</string>
+    <string name="settings_track_preference_scope_subtitle">Где хранится выбранная озвучка и субтитры.</string>
+    <string name="settings_track_preference_scope_per_video">Только для этого видео</string>
+    <string name="settings_track_preference_scope_per_video_description">Новое видео начинается с дорожек по умолчанию.</string>
+    <string name="settings_track_preference_scope_per_title">Для этого тайтла</string>
+    <string name="settings_track_preference_scope_per_title_description">Незнакомый тайтл берет общий выбор.</string>
+    <string name="settings_track_preference_scope_global">Для всех тайтлов</string>
+    <string name="settings_track_preference_scope_global_description">Один выбор на все, что вы смотрите.</string>
+
     <!-- Media3 playback -->
     <string name="settings_media3_title">Воспроизведение Media3</string>
     <string name="settings_discard_embedded_artwork">Игнорировать встроенные обложки</string>

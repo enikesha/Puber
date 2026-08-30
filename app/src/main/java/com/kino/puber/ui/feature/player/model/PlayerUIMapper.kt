@@ -11,7 +11,6 @@ import com.kino.puber.data.api.models.SkipSegmentType
 import com.kino.puber.data.api.models.SubtitleLink
 import com.kino.puber.data.api.models.VideoFile
 import com.kino.puber.data.repository.PlayerPreferencesRepository
-import com.kino.puber.domain.model.TrackPreferenceScope
 import java.util.Locale
 
 private const val MILLIS_PER_SECOND = 1_000L
@@ -174,21 +173,6 @@ internal class PlayerUIMapper(
         } else {
             context.getString(R.string.player_season_episode, seasonNumber, episodeNumber)
         }
-    }
-
-    fun mapTrackPreferenceScopes(): List<TrackPreferenceScopeUIState> {
-        return listOf(
-            TrackPreferenceScopeUIState(
-                index = 0,
-                label = context.getString(R.string.player_remember_scope_global),
-                scope = TrackPreferenceScope.GLOBAL,
-            ),
-            TrackPreferenceScopeUIState(
-                index = 1,
-                label = context.getString(R.string.player_remember_scope_per_title),
-                scope = TrackPreferenceScope.PER_TITLE,
-            ),
-        )
     }
 
     fun defaultSoundModeLabel(): String = context.getString(R.string.player_sound_stereo)

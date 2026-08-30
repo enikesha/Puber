@@ -16,6 +16,7 @@ import com.kino.puber.domain.interactor.api.ApiDomainUpdateResult
 import com.kino.puber.domain.interactor.device.IDeviceInfoInteractor
 import com.kino.puber.domain.interactor.device.IDeviceSettingInteractor
 import com.kino.puber.domain.interactor.update.IAppUpdateInteractor
+import com.kino.puber.domain.model.TrackPreferenceScope
 import com.kino.puber.ui.feature.device.settings.mappers.DeviceUiSettingsMapper
 import com.kino.puber.ui.feature.device.settings.model.DeviceSettingsActions
 import com.kino.puber.ui.feature.device.settings.model.DeviceSettingsListUi
@@ -155,6 +156,39 @@ class DeviceSettingsVMMirrorNavigationTest {
         verify(exactly = 1) {
             router.navigateTo(match { it is SpeedTestScreen })
         }
+    }
+
+    @Test
+    fun trackPreferenceScope_loadsTheStoredScopeAndPersistsANewOne() {
+        stubSuccessfulDeviceLoad()
+        every { playerPreferencesRepository.trackPreferenceScope } returns TrackPreferenceScope.PER_VIDEO
+        val vm = createVM()
+
+        vm.testOnStart()
+        mainDispatcher.dispatcher.scheduler.advanceUntilIdle()
+
+        val loadedState = vm.testStateValue.state as DeviceSettingsState.Success
+        assertEquals(TrackPreferenceScope.PER_VIDEO, loadedState.trackPreferenceScope)
+
+        vm.onAction(DeviceSettingsActions.ChangeTrackPreferenceScope(TrackPreferenceScope.GLOBAL))
+
+        val updatedState = vm.testStateValue.state as DeviceSettingsState.Success
+        assertEquals(TrackPreferenceScope.GLOBAL, updatedState.trackPreferenceScope)
+        verify { playerPreferencesRepository.trackPreferenceScope = TrackPreferenceScope.GLOBAL }
+    }
+
+    @Test
+    fun trackPreferenceScope_ignoresTheScopeThatIsAlreadyActive() {
+        stubSuccessfulDeviceLoad()
+        every { playerPreferencesRepository.trackPreferenceScope } returns TrackPreferenceScope.PER_VIDEO
+        val vm = createVM()
+        vm.testOnStart()
+        mainDispatcher.dispatcher.scheduler.advanceUntilIdle()
+        clearMocks(playerPreferencesRepository, answers = false)
+
+        vm.onAction(DeviceSettingsActions.ChangeTrackPreferenceScope(TrackPreferenceScope.PER_VIDEO))
+
+        verify(exactly = 0) { playerPreferencesRepository.trackPreferenceScope = any() }
     }
 
     private fun stubSuccessfulDeviceLoad() {

@@ -19,6 +19,9 @@
     <string name="player_subtitle_size_small">Маленький</string>
     <string name="player_subtitle_size_medium">Средний</string>
     <string name="player_subtitle_size_large">Крупный</string>
+    <string name="player_panel_remember">ЗАПОМИНАТЬ</string>
+    <string name="player_remember_scope_global">Для всех</string>
+    <string name="player_remember_scope_per_title">Для этого тайтла</string>
 
     <!-- Video Settings Panel -->
     <string name="player_panel_quality">КАЧЕСТВО</string>

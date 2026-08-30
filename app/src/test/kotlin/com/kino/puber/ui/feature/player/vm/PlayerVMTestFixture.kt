@@ -14,6 +14,7 @@ import com.kino.puber.domain.interactor.player.PlayerInteractor
 import com.kino.puber.domain.interactor.player.ResolvedMedia
 import com.kino.puber.domain.interactor.player.SkipSegmentInteractor
 import com.kino.puber.domain.model.SubtitleSize
+import com.kino.puber.domain.model.TrackPreferenceScope
 import com.kino.puber.ui.feature.player.model.ActivePanel
 import com.kino.puber.ui.feature.player.model.AudioTrackUIState
 import com.kino.puber.ui.feature.player.model.BufferPreset
@@ -23,6 +24,7 @@ import com.kino.puber.ui.feature.player.model.PlayerScreenParams
 import com.kino.puber.ui.feature.player.model.PlayerUIMapper
 import com.kino.puber.ui.feature.player.model.PlayerViewState
 import com.kino.puber.ui.feature.player.model.SubtitleTrackUIState
+import com.kino.puber.ui.feature.player.model.TrackPreferenceScopeUIState
 import com.kino.puber.util.FakeResourceProvider
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -65,7 +67,9 @@ internal abstract class PlayerVMTestFixture {
 
         coEvery { interactor.getItemDetails(any()) } returns testItem
         every { interactor.resolveMedia(any(), any(), any(), any()) } returns testResolvedMedia
-        coEvery { contentStateFactory.build(any(), any(), any(), any(), any(), any()) } returns testContentState
+        coEvery {
+            contentStateFactory.build(any(), any(), any(), any(), any(), any(), any())
+        } returns testContentState
         coEvery { interactor.markCurrentAsWatched(any(), any(), any()) } returns
             testItem.withCurrentEpisodeWatched(true)
         every { interactor.selectStreamUrl(any(), any()) } returns "https://test/v.m3u8"
@@ -73,13 +77,14 @@ internal abstract class PlayerVMTestFixture {
         every { interactor.getPreferredAudioLang(any()) } returns null
         every { interactor.getPreferredSubtitleLang(any()) } returns null
         every { interactor.getPreferredSubtitleUrl(any()) } returns null
-        every { interactor.isPreferredAudioOriginal() } returns false
+        every { interactor.isPreferredAudioOriginal(any()) } returns false
+        every { interactor.getTrackPreferenceScope() } returns TrackPreferenceScope.GLOBAL
         every { interactor.isDebugOverlayEnabled() } returns false
         every { interactor.getSubtitleSize() } returns SubtitleSize.MEDIUM
         every { interactor.getBufferPreset() } returns BufferPreset.AUTO
         every { interactor.isFastDnsEnabled() } returns true
-        every { interactor.savePreferredAudioTrack(any(), any(), any()) } returns Unit
-        every { interactor.savePreferredSubtitleTrack(any(), any()) } returns Unit
+        every { interactor.savePreferredAudioTrack(any(), any(), any(), any()) } returns Unit
+        every { interactor.savePreferredSubtitleTrack(any(), any(), any()) } returns Unit
         every { interactor.findNextEpisode(any(), any(), any()) } returns null
         every { interactor.findPreviousEpisode(any(), any(), any()) } returns null
         coEvery { skipSegmentInteractor.loadSegments(any(), any(), any()) } returns emptyList()
@@ -202,6 +207,11 @@ internal abstract class PlayerVMTestFixture {
         ),
     )
 
+    protected val testTrackPreferenceScopes = listOf(
+        TrackPreferenceScopeUIState(0, "All titles", TrackPreferenceScope.GLOBAL),
+        TrackPreferenceScopeUIState(1, "This title", TrackPreferenceScope.PER_TITLE),
+    )
+
     protected val testContentState = PlayerContentState(
         title = "Breaking Bad",
         subtitle = "S1E1",
@@ -226,6 +236,8 @@ internal abstract class PlayerVMTestFixture {
         soundModes = emptyList(),
         selectedSoundModeIndex = 0,
         subtitleSize = SubtitleSize.MEDIUM,
+        trackPreferenceScopes = testTrackPreferenceScopes,
+        selectedTrackPreferenceScopeIndex = 0,
         qualities = emptyList(),
         selectedQualityIndex = 0,
         speeds = emptyList(),

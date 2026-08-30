@@ -10,6 +10,7 @@ import com.kino.puber.data.api.models.VideoFile
 import com.kino.puber.data.repository.ItemDetailsRepository
 import com.kino.puber.data.repository.PlayerPreferencesRepository
 import com.kino.puber.domain.model.SubtitleSize
+import com.kino.puber.domain.model.TrackPreferenceScope
 import com.kino.puber.ui.feature.player.model.BufferPreset
 import kotlinx.coroutines.CancellationException
 
@@ -307,16 +308,18 @@ internal class PlayerInteractor(
         return playerPreferencesRepository.getPreferredSubtitleUrl(itemId)
     }
 
-    fun isPreferredAudioOriginal(): Boolean {
-        return playerPreferencesRepository.isPreferredAudioOriginal()
+    fun isPreferredAudioOriginal(itemId: Int): Boolean {
+        return playerPreferencesRepository.isPreferredAudioOriginal(itemId)
     }
 
     fun savePreferredAudioTrack(
+        itemId: Int,
         audioLang: String?,
         audioLabel: String?,
         isOriginal: Boolean,
     ) {
         playerPreferencesRepository.savePreferredAudioTrack(
+            itemId = itemId,
             audioLang = audioLang,
             audioLabel = audioLabel,
             isOriginal = isOriginal,
@@ -324,13 +327,23 @@ internal class PlayerInteractor(
     }
 
     fun savePreferredSubtitleTrack(
+        itemId: Int,
         subtitleLang: String?,
         subtitleUrl: String?,
     ) {
         playerPreferencesRepository.savePreferredSubtitleTrack(
+            itemId = itemId,
             subtitleLang = subtitleLang.orEmpty(),
             subtitleUrl = subtitleUrl.orEmpty(),
         )
+    }
+
+    fun getTrackPreferenceScope(): TrackPreferenceScope {
+        return playerPreferencesRepository.trackPreferenceScope
+    }
+
+    fun saveTrackPreferenceScope(scope: TrackPreferenceScope) {
+        playerPreferencesRepository.trackPreferenceScope = scope
     }
 
     fun isDebugOverlayEnabled(): Boolean {

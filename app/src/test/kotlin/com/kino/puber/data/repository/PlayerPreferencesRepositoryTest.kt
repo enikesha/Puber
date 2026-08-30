@@ -36,6 +36,7 @@ internal class PlayerPreferencesRepositoryTest {
     @Test
     fun trackPreferences_applyAcrossDifferentItems() {
         val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
 
         fixture.repository.saveAudio(itemId = 42, lang = "rus", label = "Russian")
         fixture.repository.savePreferredSubtitleTrack(
@@ -56,6 +57,7 @@ internal class PlayerPreferencesRepositoryTest {
     @Test
     fun subtitleOff_isPersistedAsExplicitGlobalPreference() {
         val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
 
         fixture.repository.savePreferredSubtitleTrack(itemId = 42, subtitleLang = "", subtitleUrl = "")
 
@@ -66,8 +68,34 @@ internal class PlayerPreferencesRepositoryTest {
     }
 
     @Test
-    fun trackPreferenceScope_defaultsToGlobal() {
-        assertEquals(TrackPreferenceScope.GLOBAL, fixture().repository.trackPreferenceScope)
+    fun trackPreferenceScope_defaultsToPerVideo() {
+        assertEquals(TrackPreferenceScope.PER_VIDEO, fixture().repository.trackPreferenceScope)
+    }
+
+    @Test
+    fun perVideoScope_startsAnUnseenItemWithNothingRemembered() {
+        val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
+        fixture.repository.saveAudio(itemId = 7, lang = "eng", label = "English")
+
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.PER_VIDEO
+        fixture.repository.saveAudio(itemId = 42, lang = "rus", label = "Russian")
+
+        assertEquals("rus", fixture.repository.getPreferredAudioLang(itemId = 42))
+        assertNull(fixture.repository.getPreferredAudioLang(itemId = 99))
+    }
+
+    @Test
+    fun perVideoScope_leavesTheSharedSelectionUntouched() {
+        val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
+        fixture.repository.saveAudio(itemId = 42, lang = "rus", label = "Russian")
+
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.PER_VIDEO
+        fixture.repository.saveAudio(itemId = 42, lang = "eng", label = "English")
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
+
+        assertEquals("rus", fixture.repository.getPreferredAudioLang(itemId = 42))
     }
 
     @Test
@@ -93,6 +121,7 @@ internal class PlayerPreferencesRepositoryTest {
     @Test
     fun perTitleScope_fallsBackToTheGlobalSelectionOfAnUnseenItem() {
         val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
         fixture.repository.saveAudio(itemId = 42, lang = "rus", label = "Russian")
 
         fixture.repository.trackPreferenceScope = TrackPreferenceScope.PER_TITLE
@@ -115,6 +144,7 @@ internal class PlayerPreferencesRepositoryTest {
     @Test
     fun originalAudio_isRememberedAsAKindRatherThanALanguage() {
         val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
 
         fixture.repository.savePreferredAudioTrack(
             itemId = 42,

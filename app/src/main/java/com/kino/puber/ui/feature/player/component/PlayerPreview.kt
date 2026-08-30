@@ -28,8 +28,6 @@ import com.kino.puber.ui.feature.player.model.SeekIndicatorState
 import com.kino.puber.ui.feature.player.model.SoundModeUIState
 import com.kino.puber.domain.model.SubtitleSize
 import com.kino.puber.ui.feature.player.model.SubtitleTrackUIState
-import com.kino.puber.ui.feature.player.model.TrackPreferenceScopeUIState
-import com.kino.puber.domain.model.TrackPreferenceScope
 import com.kino.puber.ui.feature.player.vm.PlaybackIntent
 
 // region Preview Data
@@ -46,11 +44,6 @@ private val previewSubtitleTracks = listOf(
     SubtitleTrackUIState(2, "Русские для слабослышащих", "ru", "https://example.com/ru-sdh.vtt"),
     SubtitleTrackUIState(3, "English", "en", "https://example.com/en.vtt"),
     SubtitleTrackUIState(4, "Узбекские · Созданы нейросетью", "uz", "https://example.com/uz.vtt"),
-)
-
-private val previewTrackPreferenceScopes = listOf(
-    TrackPreferenceScopeUIState(0, "Для всех", TrackPreferenceScope.GLOBAL),
-    TrackPreferenceScopeUIState(1, "Для этого тайтла", TrackPreferenceScope.PER_TITLE),
 )
 
 private val previewSoundModes = listOf(
@@ -126,8 +119,6 @@ private fun previewSeriesContent(
     soundModes = previewSoundModes,
     selectedSoundModeIndex = 0,
     subtitleSize = SubtitleSize.MEDIUM,
-    trackPreferenceScopes = previewTrackPreferenceScopes,
-    selectedTrackPreferenceScopeIndex = 0,
     qualities = previewQualities,
     selectedQualityIndex = 0,
     speeds = PlayerUIMapper.SPEEDS,
@@ -176,8 +167,6 @@ private fun previewMovieContent(
     soundModes = previewSoundModes,
     selectedSoundModeIndex = 0,
     subtitleSize = SubtitleSize.MEDIUM,
-    trackPreferenceScopes = previewTrackPreferenceScopes,
-    selectedTrackPreferenceScopeIndex = 0,
     qualities = previewQualities,
     selectedQualityIndex = 0,
     speeds = PlayerUIMapper.SPEEDS,

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.kino.puber.core.model.NavigationMode
 import com.kino.puber.core.ui.uikit.model.ApiDomainDialogState
 import com.kino.puber.domain.interactor.device.DeviceSettingType
+import com.kino.puber.domain.model.TrackPreferenceScope
 
 @Immutable
 internal data class DeviceSettingsViewState(
@@ -31,6 +32,7 @@ internal sealed interface DeviceSettingsState {
         val watchedIndicatorsEnabled: Boolean = true,
         val discardEmbeddedArtworkMetadata: Boolean = true,
         val hagcPlaybackEnabled: Boolean = false,
+        val trackPreferenceScope: TrackPreferenceScope = TrackPreferenceScope.PER_VIDEO,
         val navigationMode: NavigationMode = NavigationMode.TopTabs,
         val showCartoonsTab: Boolean = false,
         val showAnimeTab: Boolean = false,

@@ -12,8 +12,8 @@ class PlayerPreferencesRepository(context: Context) {
 
     var trackPreferenceScope: TrackPreferenceScope
         get() {
-            val ordinal = prefs.getInt(KEY_TRACK_PREFERENCE_SCOPE, TrackPreferenceScope.GLOBAL.ordinal)
-            return TrackPreferenceScope.entries.getOrElse(ordinal) { TrackPreferenceScope.GLOBAL }
+            val ordinal = prefs.getInt(KEY_TRACK_PREFERENCE_SCOPE, DEFAULT_TRACK_PREFERENCE_SCOPE.ordinal)
+            return TrackPreferenceScope.entries.getOrElse(ordinal) { DEFAULT_TRACK_PREFERENCE_SCOPE }
         }
         set(value) = prefs.edit().putInt(KEY_TRACK_PREFERENCE_SCOPE, value.ordinal).apply()
 
@@ -70,7 +70,8 @@ class PlayerPreferencesRepository(context: Context) {
 
     /**
      * Reads the entry the active scope owns and falls back to the other one, so switching the
-     * scope keeps whatever was already remembered instead of starting from nothing.
+     * scope keeps whatever was already remembered instead of starting from nothing. The
+     * per-video scope owns the item entry alone and has nothing to fall back to.
      */
     private fun readScoped(itemId: Int, globalKey: String, itemKeyPrefix: String): String? {
         val key = scopedKeys(itemId, globalKey, itemKeyPrefix).firstOrNull { prefs.contains(it) }
@@ -93,6 +94,7 @@ class PlayerPreferencesRepository(context: Context) {
         return when (trackPreferenceScope) {
             TrackPreferenceScope.GLOBAL -> listOf(globalKey, itemKey)
             TrackPreferenceScope.PER_TITLE -> listOf(itemKey, globalKey)
+            TrackPreferenceScope.PER_VIDEO -> listOf(itemKey)
         }
     }
 
@@ -149,6 +151,7 @@ class PlayerPreferencesRepository(context: Context) {
         set(value) = prefs.edit().putBoolean(KEY_HAGC_PLAYBACK_ENABLED, value).apply()
 
     private companion object {
+        val DEFAULT_TRACK_PREFERENCE_SCOPE = TrackPreferenceScope.PER_VIDEO
         const val PREFS_NAME = "player_preferences"
         const val KEY_AUDIO_LANG_PREFIX = "audio_lang_"
         const val KEY_AUDIO_LABEL_PREFIX = "audio_label_"

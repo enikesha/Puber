@@ -26,7 +26,6 @@ internal sealed class PlayerAction : UIAction {
     data class SelectSubtitle(val index: Int) : PlayerAction()
     data class SelectSoundMode(val index: Int) : PlayerAction()
     data object CycleSubtitleSize : PlayerAction()
-    data class SelectTrackPreferenceScope(val index: Int) : PlayerAction()
 
     // Video settings
     data class SelectQuality(val index: Int) : PlayerAction()

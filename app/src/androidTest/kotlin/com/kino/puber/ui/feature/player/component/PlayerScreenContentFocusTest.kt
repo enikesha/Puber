@@ -601,7 +601,7 @@ internal class PlayerScreenContentFocusTest {
         playPauseIndicator = null,
         audioTracks = listOf(AudioTrackUIState(0, "Русский", "ru")),
         selectedAudioTrackIndex = 0,
-        subtitleTracks = listOf(SubtitleTrackUIState(0, "Выкл.", "", "")),
+        subtitleTracks = listOf(SubtitleTrackUIState("Выкл.", "", "")),
         selectedSubtitleIndex = 0,
         soundModes = listOf(SoundModeUIState(0, SOUND_ITEM)),
         selectedSoundModeIndex = 0,

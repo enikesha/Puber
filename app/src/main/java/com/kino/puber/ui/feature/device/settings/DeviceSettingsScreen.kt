@@ -3,11 +3,13 @@ package com.kino.puber.ui.feature.device.settings
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import com.kino.puber.core.di.DIScope
 import com.kino.puber.core.ui.navigation.PuberScreen
 import com.kino.puber.core.ui.uikit.component.ApiDomainDialog
 import com.kino.puber.core.ui.uikit.component.ScaffoldMessage
 import com.kino.puber.ui.feature.device.settings.model.DeviceSettingsActions
+import com.kino.puber.ui.feature.device.settings.model.DeviceSettingsState
 import com.kino.puber.ui.feature.device.settings.mappers.DeviceUiSettingsMapper
 import com.kino.puber.ui.feature.device.settings.vm.DeviceSettingsVM
 import kotlinx.parcelize.Parcelize
@@ -34,12 +36,14 @@ internal class DeviceSettingsScreen : PuberScreen {
         val viewModel = puberViewModel<DeviceSettingsVM>()
         val state by viewModel.collectViewState()
         val message by viewModel.collectMessage()
+        val onAction = remember(viewModel) { viewModel::onAction }
+        val settings = state.state as? DeviceSettingsState.Success
 
         Box {
             DeviceSettingsContent(
                 state = state.state,
                 apiDomain = state.apiDomain,
-                onAction = viewModel::onAction,
+                onAction = onAction,
             )
             ApiDomainDialog(
                 state = state.apiDomain.takeIf { state.isApiDomainDialogOpen },
@@ -48,9 +52,20 @@ internal class DeviceSettingsScreen : PuberScreen {
                 onDetect = { viewModel.onAction(DeviceSettingsActions.DetectApiDomain) },
                 onDismiss = { viewModel.onAction(DeviceSettingsActions.CloseApiDomainDialog) },
             )
+            MyShowsTokenDialog(
+                isOpen = state.isMyShowsDialogOpen,
+                isConnected = settings?.isMyShowsConnected == true,
+                isRequestInProgress = state.isMyShowsRequestInProgress,
+                pairingUrl = state.myShowsPairingUrl,
+                isPairingUnavailable = state.isMyShowsPairingUnavailable,
+                onConnect = { onAction(DeviceSettingsActions.ConnectMyShows(it)) },
+                onValidate = { onAction(DeviceSettingsActions.ValidateMyShowsConnection) },
+                onDisconnect = { onAction(DeviceSettingsActions.DisconnectMyShows) },
+                onDismiss = { onAction(DeviceSettingsActions.CloseMyShowsDialog) },
+            )
             ScaffoldMessage(
                 message = message,
-                onAction = viewModel::onAction,
+                onAction = onAction,
             )
         }
     }

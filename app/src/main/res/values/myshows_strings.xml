@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="myshows_settings_title">MyShows</string>
+    <string name="myshows_settings_subtitle">Отмечайте просмотренные серии в MyShows автоматически</string>
+    <string name="myshows_account">Аккаунт MyShows</string>
+    <string name="myshows_account_description">Управление подключением</string>
+    <string name="myshows_connected">Подключено</string>
+    <string name="myshows_not_connected">Не подключено</string>
+    <string name="myshows_api_checking">Проверяем подключение…</string>
+    <string name="myshows_api_response_account">%1$s · подключено</string>
+    <string name="myshows_api_response_success">Подключение подтверждено</string>
+    <string name="myshows_api_response_failed">Не удалось проверить подключение</string>
+    <string name="myshows_sync_watched">Синхронизировать просмотры</string>
+    <string name="myshows_sync_watched_description">Отмечать в MyShows серии, просмотренные в Puber</string>
+
+    <string name="myshows_dialog_title">Подключить MyShows</string>
+    <string name="myshows_dialog_description">Сканируйте QR-код камерой телефона</string>
+    <string name="myshows_pairing_phone_hint">Выполните шаги на телефоне. После проверки это окно закроется автоматически.</string>
+    <string name="myshows_pairing_same_network">Телефон и телевизор должны быть в одной сети Wi‑Fi.</string>
+    <string name="myshows_pairing_qr_description">QR-код для подключения MyShows с телефона</string>
+    <string name="myshows_pairing_qr_unavailable">QR-код недоступен</string>
+    <string name="myshows_pairing_waiting">Ждём подключения…</string>
+    <string name="myshows_pairing_checking">Проверяем подключение…</string>
+    <string name="myshows_pairing_unavailable">Не удалось создать QR-код. Проверьте сеть или введите данные вручную.</string>
+    <string name="myshows_manual_entry">Ввести вручную</string>
+    <string name="myshows_hide_manual_entry">Скрыть</string>
+    <string name="myshows_token_label">Токен доступа</string>
+    <string name="myshows_token_placeholder">Вставьте токен</string>
+    <string name="myshows_token_replace_placeholder">Новый токен (необязательно)</string>
+    <string name="myshows_token_required">Введите токен MyShows</string>
+    <string name="myshows_connect">Подключить</string>
+    <string name="myshows_replace_token">Заменить токен</string>
+    <string name="myshows_validate">Проверить</string>
+    <string name="myshows_disconnect">Отключить</string>
+    <string name="myshows_close">Закрыть</string>
+    <string name="myshows_checking">Проверка…</string>
+    <string name="myshows_dialog_connected_hint">Токен сохранён в защищённом хранилище устройства.</string>
+
+    <string name="myshows_connected_message">MyShows подключён</string>
+    <string name="myshows_connection_valid">Подключение MyShows работает</string>
+    <string name="myshows_connection_failed">Не удалось подключить MyShows. Проверьте данные и подключение к интернету.</string>
+    <string name="myshows_disconnected_message">MyShows отключён</string>
+</resources>

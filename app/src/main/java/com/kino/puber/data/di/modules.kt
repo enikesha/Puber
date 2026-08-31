@@ -5,6 +5,7 @@ package com.kino.puber.data.di
 import android.net.ConnectivityManager
 import com.kino.puber.core.session.SessionEventBus
 import com.kino.puber.data.api.KinoPubApiClient
+import com.kino.puber.data.api.MyShowsApiClient
 import com.kino.puber.data.api.config.KinoPubConfig
 import com.kino.puber.data.repository.AppUpdateDownloader
 import com.kino.puber.data.repository.AppUpdateInstaller
@@ -21,6 +22,8 @@ import com.kino.puber.data.repository.IDeviceSettingsRepository
 import com.kino.puber.data.repository.IKinoPubRepository
 import com.kino.puber.data.repository.ItemDetailsRepository
 import com.kino.puber.data.repository.KinoPubRepository
+import com.kino.puber.data.repository.MyShowsPreferencesRepository
+import com.kino.puber.data.repository.MyShowsPairingServer
 import com.kino.puber.data.repository.PlayerPreferencesRepository
 import com.kino.puber.data.repository.SkipSegmentRepository
 import com.kino.puber.data.repository.SkipSegmentService
@@ -62,6 +65,7 @@ val apiModule = module {
     singleOf(::TmdbApiClient)
     singleOf(::TheIntroDbApiClient)
     singleOf(::IntroDbAppApiClient)
+    singleOf(::MyShowsApiClient)
 }
 
 private const val MIB = 1024L * 1024L
@@ -92,6 +96,8 @@ val repositoryModule = module {
     singleOf(::SkipSegmentRepository)
     singleOf(::SkipSegmentService)
     single { NavigationPreferencesRepository(androidContext()) }
+    singleOf(::MyShowsPreferencesRepository)
+    single { MyShowsPairingServer() }
     single<androidx.media3.datasource.cache.Cache> {
         val cacheDir = java.io.File(androidContext().externalCacheDir ?: androidContext().cacheDir, "media_cache")
         SimpleCache(

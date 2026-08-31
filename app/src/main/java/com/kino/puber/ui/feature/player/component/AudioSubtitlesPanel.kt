@@ -6,7 +6,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,11 +24,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.tv.material3.Button
-import androidx.tv.material3.ButtonDefaults
+import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import com.kino.puber.R
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.ui.feature.player.model.AudioTrackUIState
 import com.kino.puber.ui.feature.player.model.SoundModeUIState
 import com.kino.puber.ui.feature.player.model.SubtitleTrackUIState
@@ -43,10 +44,13 @@ internal fun AudioSubtitlesPanel(
     selectedAudioTrackIndex: Int,
     subtitleTracks: List<SubtitleTrackUIState>,
     selectedSubtitleIndex: Int,
+    bluetoothAudioDelay: BluetoothAudioDelay,
+    showBluetoothSyncControls: Boolean,
     onSoundModeSelected: (Int) -> Unit,
     onAudioTrackSelected: (Int) -> Unit,
     onSubtitleSelected: (Int) -> Unit,
     onSubtitleSizeClick: () -> Unit,
+    onBluetoothSyncClick: () -> Unit,
     onBackPressed: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -80,12 +84,10 @@ internal fun AudioSubtitlesPanel(
                 onSoundModeSelected = onSoundModeSelected,
                 onAudioTrackSelected = onAudioTrackSelected,
                 onSubtitleSelected = onSubtitleSelected,
-            )
-            SubtitleSizeButton(
-                onClick = onSubtitleSizeClick,
-                focusRequester = panelFocusRequester.takeIf {
-                    initialFocusTarget == AudioSubtitlesFocusTarget.SubtitleSize
-                },
+                onSubtitleSizeClick = onSubtitleSizeClick,
+                bluetoothAudioDelay = bluetoothAudioDelay,
+                showBluetoothSyncControls = showBluetoothSyncControls,
+                onBluetoothSyncClick = onBluetoothSyncClick,
             )
         }
     }
@@ -99,7 +101,38 @@ private enum class AudioSubtitlesFocusTarget {
 }
 
 @Composable
-private fun AudioSubtitlesPanelContainer(content: @Composable BoxScope.() -> Unit) {
+private fun CompactPanelAction(
+    label: String,
+    value: String? = null,
+    focusRequester: FocusRequester? = null,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier,
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color.Transparent,
+            focusedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            focusedContentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        shape = ClickableSurfaceDefaults.shape(shape = MaterialTheme.shapes.small),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Text(text = label, style = MaterialTheme.typography.bodyMedium)
+            if (value != null) {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AudioSubtitlesPanelContainer(content: @Composable () -> Unit) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.BottomCenter,
@@ -130,6 +163,10 @@ private fun AudioSubtitlesColumns(
     onSoundModeSelected: (Int) -> Unit,
     onAudioTrackSelected: (Int) -> Unit,
     onSubtitleSelected: (Int) -> Unit,
+    onSubtitleSizeClick: () -> Unit,
+    bluetoothAudioDelay: BluetoothAudioDelay,
+    showBluetoothSyncControls: Boolean,
+    onBluetoothSyncClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -138,10 +175,15 @@ private fun AudioSubtitlesColumns(
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
         SoundModeColumn(
-            soundModes,
-            selectedSoundModeIndex,
-            panelFocusRequester.takeIf { initialFocusTarget == AudioSubtitlesFocusTarget.SoundMode },
-            onSoundModeSelected,
+            soundModes = soundModes,
+            selectedSoundModeIndex = selectedSoundModeIndex,
+            panelFocusRequester = panelFocusRequester.takeIf {
+                initialFocusTarget == AudioSubtitlesFocusTarget.SoundMode
+            },
+            bluetoothAudioDelay = bluetoothAudioDelay,
+            showBluetoothSyncControls = showBluetoothSyncControls,
+            onSoundModeSelected = onSoundModeSelected,
+            onBluetoothSyncClick = onBluetoothSyncClick,
         )
         AudioTrackColumn(
             audioTracks,
@@ -150,10 +192,16 @@ private fun AudioSubtitlesColumns(
             onAudioTrackSelected,
         )
         SubtitleColumn(
-            subtitleTracks,
-            selectedSubtitleIndex,
-            panelFocusRequester.takeIf { initialFocusTarget == AudioSubtitlesFocusTarget.Subtitle },
-            onSubtitleSelected,
+            subtitleTracks = subtitleTracks,
+            selectedSubtitleIndex = selectedSubtitleIndex,
+            panelFocusRequester = panelFocusRequester.takeIf {
+                initialFocusTarget == AudioSubtitlesFocusTarget.Subtitle
+            },
+            subtitleSizeFocusRequester = panelFocusRequester.takeIf {
+                initialFocusTarget == AudioSubtitlesFocusTarget.SubtitleSize
+            },
+            onSubtitleSelected = onSubtitleSelected,
+            onSubtitleSizeClick = onSubtitleSizeClick,
         )
     }
 }
@@ -163,7 +211,10 @@ private fun RowScope.SoundModeColumn(
     soundModes: List<SoundModeUIState>,
     selectedSoundModeIndex: Int,
     panelFocusRequester: FocusRequester?,
+    bluetoothAudioDelay: BluetoothAudioDelay,
+    showBluetoothSyncControls: Boolean,
     onSoundModeSelected: (Int) -> Unit,
+    onBluetoothSyncClick: () -> Unit,
 ) {
     if (soundModes.isEmpty()) return
     val labels = remember(soundModes) { soundModes.map { it.label } }
@@ -172,8 +223,26 @@ private fun RowScope.SoundModeColumn(
         items = labels,
         selectedIndex = selectedSoundModeIndex,
         onItemSelected = onSoundModeSelected,
-        modifier = Modifier.weight(1f),
+        modifier = Modifier.weight(SOUND_COLUMN_WEIGHT),
         firstItemFocusRequester = panelFocusRequester,
+        footer = if (showBluetoothSyncControls) {
+            {
+                CompactPanelAction(
+                    label = stringResource(R.string.player_sync_change_offset),
+                    value = if (bluetoothAudioDelay == BluetoothAudioDelay.OFF) {
+                        stringResource(R.string.player_sync_value_zero)
+                    } else {
+                        stringResource(
+                            R.string.player_sync_value,
+                            bluetoothAudioDelay.milliseconds,
+                        )
+                    },
+                    onClick = onBluetoothSyncClick,
+                )
+            }
+        } else {
+            null
+        },
     )
 }
 
@@ -191,7 +260,7 @@ private fun RowScope.AudioTrackColumn(
         items = labels,
         selectedIndex = selectedAudioTrackIndex,
         onItemSelected = onAudioTrackSelected,
-        modifier = Modifier.weight(1f),
+        modifier = Modifier.weight(AUDIO_COLUMN_WEIGHT),
         firstItemFocusRequester = panelFocusRequester,
     )
 }
@@ -201,7 +270,9 @@ private fun RowScope.SubtitleColumn(
     subtitleTracks: List<SubtitleTrackUIState>,
     selectedSubtitleIndex: Int,
     panelFocusRequester: FocusRequester?,
+    subtitleSizeFocusRequester: FocusRequester?,
     onSubtitleSelected: (Int) -> Unit,
+    onSubtitleSizeClick: () -> Unit,
 ) {
     val labels = remember(subtitleTracks) { subtitleTracks.map { it.label } }
     SettingsPanelColumn(
@@ -209,32 +280,18 @@ private fun RowScope.SubtitleColumn(
         items = labels,
         selectedIndex = selectedSubtitleIndex,
         onItemSelected = onSubtitleSelected,
-        modifier = Modifier.weight(1f),
+        modifier = Modifier.weight(SUBTITLE_COLUMN_WEIGHT),
         firstItemFocusRequester = panelFocusRequester,
+        footer = {
+            CompactPanelAction(
+                label = stringResource(R.string.player_subtitle_size),
+                focusRequester = subtitleSizeFocusRequester,
+                onClick = onSubtitleSizeClick,
+            )
+        },
     )
 }
 
-@Composable
-private fun BoxScope.SubtitleSizeButton(
-    onClick: () -> Unit,
-    focusRequester: FocusRequester?,
-) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier
-            .align(Alignment.TopEnd)
-            .padding(top = 16.dp, end = 16.dp)
-            .then(focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier),
-        colors = ButtonDefaults.colors(
-            containerColor = Color.Transparent,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            focusedContainerColor = MaterialTheme.colorScheme.primary,
-            focusedContentColor = MaterialTheme.colorScheme.onPrimary,
-        ),
-    ) {
-        Text(
-            text = stringResource(R.string.player_subtitle_size),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-    }
-}
+private const val SOUND_COLUMN_WEIGHT = 1f
+private const val AUDIO_COLUMN_WEIGHT = 1.5f
+private const val SUBTITLE_COLUMN_WEIGHT = 1f

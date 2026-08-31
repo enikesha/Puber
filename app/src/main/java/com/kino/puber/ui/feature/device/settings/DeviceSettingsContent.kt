@@ -60,6 +60,7 @@ import com.kino.puber.core.ui.uikit.model.ApiDomainDialogState
 import com.kino.puber.core.ui.uikit.model.CommonAction
 import com.kino.puber.core.ui.uikit.model.UIAction
 import com.kino.puber.core.ui.uikit.theme.highlightOnFocus
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.domain.model.TrackPreferenceScope
 import com.kino.puber.ui.feature.device.settings.model.DeviceSettingUIModel
 import com.kino.puber.ui.feature.device.settings.model.DeviceSettingsActions
@@ -604,6 +605,22 @@ private fun LazyListScope.media3PlaybackItems(
     }
     item {
         LocalToggleItem(
+            label = stringResource(R.string.settings_bluetooth_sync_controls),
+            description = stringResource(R.string.settings_bluetooth_sync_controls_description),
+            value = if (state.bluetoothAudioDelay == BluetoothAudioDelay.OFF) {
+                stringResource(R.string.player_sync_value_zero)
+            } else {
+                stringResource(
+                    R.string.settings_bluetooth_audio_delay_value,
+                    state.bluetoothAudioDelay.milliseconds,
+                )
+            },
+            checked = state.bluetoothSyncControlsEnabled,
+            onToggle = { onAction(DeviceSettingsActions.ToggleBluetoothSyncControls) },
+        )
+    }
+    item {
+        LocalToggleItem(
             label = stringResource(R.string.settings_discard_embedded_artwork),
             description = stringResource(R.string.settings_discard_embedded_artwork_description),
             checked = state.discardEmbeddedArtworkMetadata,
@@ -625,6 +642,7 @@ private fun LazyListScope.media3PlaybackItems(
 @Composable
 private fun LocalActionItem(
     label: String,
+    description: String? = null,
     value: String? = null,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -644,12 +662,20 @@ private fun LocalActionItem(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.secondary,
+            )
+            if (description != null) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         if (value != null) {
             Text(
                 text = value,
@@ -664,6 +690,7 @@ private fun LocalActionItem(
 private fun LocalToggleItem(
     label: String,
     description: String? = null,
+    value: String? = null,
     checked: Boolean,
     onToggle: () -> Unit,
 ) {
@@ -696,6 +723,14 @@ private fun LocalToggleItem(
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
+        }
+        if (value != null) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
         }
         Switch(
             checked = checked,

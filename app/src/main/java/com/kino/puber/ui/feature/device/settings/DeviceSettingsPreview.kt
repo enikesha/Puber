@@ -6,6 +6,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import com.kino.puber.core.ui.uikit.theme.PuberTheme
 import com.kino.puber.domain.interactor.device.DeviceSettingType
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.core.ui.uikit.model.ApiDomainDialogState
 import com.kino.puber.ui.feature.device.settings.model.DeviceSettingUIModel
 import com.kino.puber.ui.feature.device.settings.model.DeviceSettingsListUi
@@ -90,6 +91,8 @@ internal class DeviceSettingsStateProvider : PreviewParameterProvider<DeviceSett
             settings = previewAllSettings,
             device = previewDevice,
             showAnime = false,
+            bluetoothAudioDelay = BluetoothAudioDelay.MS_200,
+            bluetoothSyncControlsEnabled = true,
         ),
         DeviceSettingsState.Success(
             settings = previewAllSettings,

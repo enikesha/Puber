@@ -57,6 +57,7 @@ internal class ControlsStateMachine {
         lastPanelOpener = when (panel) {
             ActivePanel.Episodes -> FocusTarget.EpisodesButton
             ActivePanel.AudioSubtitles -> FocusTarget.AudioSubtitlesButton
+            ActivePanel.BluetoothSync -> FocusTarget.AudioSubtitlesButton
             ActivePanel.VideoSettings -> FocusTarget.VideoSettingsButton
             ActivePanel.None -> FocusTarget.Buttons
         }
@@ -74,6 +75,11 @@ internal class ControlsStateMachine {
 
     fun closePanel(): List<Effect> {
         val effects = mutableListOf<Effect>()
+
+        if (state.activePanel == ActivePanel.BluetoothSync) {
+            state = state.copy(activePanel = ActivePanel.AudioSubtitles)
+            return listOf(Effect.CancelHide)
+        }
 
         if (state.activePanel == ActivePanel.Episodes && wasPlayRequestedBeforePanel) {
             effects.add(Effect.ResumePlayback)

@@ -16,6 +16,7 @@ import com.kino.puber.domain.interactor.api.ApiDomainUpdateResult
 import com.kino.puber.domain.interactor.device.IDeviceInfoInteractor
 import com.kino.puber.domain.interactor.device.IDeviceSettingInteractor
 import com.kino.puber.domain.interactor.update.IAppUpdateInteractor
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.domain.model.TrackPreferenceScope
 import com.kino.puber.ui.feature.device.settings.mappers.DeviceUiSettingsMapper
 import com.kino.puber.ui.feature.device.settings.model.DeviceSettingsActions
@@ -128,6 +129,8 @@ class DeviceSettingsVMMirrorNavigationTest {
         stubSuccessfulDeviceLoad()
         every { playerPreferencesRepository.discardEmbeddedArtworkMetadata } returns true
         every { playerPreferencesRepository.hagcPlaybackEnabled } returns false
+        every { playerPreferencesRepository.bluetoothAudioDelay } returns BluetoothAudioDelay.OFF
+        every { playerPreferencesRepository.bluetoothSyncControlsEnabled } returns false
         val vm = createVM()
 
         vm.testOnStart()
@@ -139,12 +142,16 @@ class DeviceSettingsVMMirrorNavigationTest {
 
         vm.onAction(DeviceSettingsActions.ToggleDiscardEmbeddedArtworkMetadata)
         vm.onAction(DeviceSettingsActions.ToggleHagcPlayback)
+        vm.onAction(DeviceSettingsActions.ToggleBluetoothSyncControls)
 
         val updatedState = vm.testStateValue.state as DeviceSettingsState.Success
         assertFalse(updatedState.discardEmbeddedArtworkMetadata)
         assertTrue(updatedState.hagcPlaybackEnabled)
+        assertTrue(updatedState.bluetoothSyncControlsEnabled)
+        assertEquals(BluetoothAudioDelay.OFF, updatedState.bluetoothAudioDelay)
         verify { playerPreferencesRepository.discardEmbeddedArtworkMetadata = false }
         verify { playerPreferencesRepository.hagcPlaybackEnabled = true }
+        verify { playerPreferencesRepository.bluetoothSyncControlsEnabled = true }
     }
 
     @Test

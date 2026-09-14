@@ -15,10 +15,12 @@ import com.kino.puber.core.ui.uikit.component.moviesList.VideoGridItemUIState
 import com.kino.puber.core.ui.uikit.component.moviesList.VideoGridUIState
 import com.kino.puber.core.ui.uikit.component.moviesList.VideoItemUIState
 import com.kino.puber.core.ui.uikit.theme.PuberTheme
+import com.kino.puber.domain.model.BluetoothAudioDelay
+import com.kino.puber.domain.model.SubtitleSize
 import com.kino.puber.ui.feature.player.model.ActivePanel
+import com.kino.puber.ui.feature.player.model.AudioTrackUIState
 import com.kino.puber.ui.feature.player.model.BufferPreset
 import com.kino.puber.ui.feature.player.model.BufferPresetUIState
-import com.kino.puber.ui.feature.player.model.AudioTrackUIState
 import com.kino.puber.ui.feature.player.model.PlayerContentState
 import com.kino.puber.ui.feature.player.model.PlayerUIMapper
 import com.kino.puber.ui.feature.player.model.PlayerViewState
@@ -26,7 +28,6 @@ import com.kino.puber.ui.feature.player.model.QualityUIState
 import com.kino.puber.ui.feature.player.model.ResumeDialogState
 import com.kino.puber.ui.feature.player.model.SeekIndicatorState
 import com.kino.puber.ui.feature.player.model.SoundModeUIState
-import com.kino.puber.domain.model.SubtitleSize
 import com.kino.puber.ui.feature.player.model.SubtitleTrackUIState
 import com.kino.puber.ui.feature.player.vm.PlaybackIntent
 
@@ -297,7 +298,28 @@ private fun AudioSubtitlesPanelPreview() = PuberTheme {
             previewSeriesContent(
                 controlsVisible = false,
                 activePanel = ActivePanel.AudioSubtitles,
-            )
+            ).copy(
+                bluetoothAudioDelay = BluetoothAudioDelay.MS_200,
+                bluetoothSyncControlsVisible = true,
+            ),
+        ),
+        onAction = {},
+        exoPlayer = { null },
+    )
+}
+
+@Preview(name = "Bluetooth sync slider", device = TV_1080p)
+@Composable
+private fun BluetoothSyncPanelPreview() = PuberTheme {
+    PlayerScreenContent(
+        state = PlayerViewState.Content(
+            previewSeriesContent(
+                controlsVisible = false,
+                activePanel = ActivePanel.BluetoothSync,
+            ).copy(
+                bluetoothAudioDelay = BluetoothAudioDelay.fromMilliseconds(-120),
+                bluetoothSyncControlsVisible = true,
+            ),
         ),
         onAction = {},
         exoPlayer = { null },

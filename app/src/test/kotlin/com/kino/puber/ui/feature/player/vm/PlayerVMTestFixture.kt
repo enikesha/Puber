@@ -14,6 +14,7 @@ import com.kino.puber.domain.interactor.player.PlayerInteractor
 import com.kino.puber.domain.interactor.player.ResolvedMedia
 import com.kino.puber.domain.interactor.player.SkipSegmentInteractor
 import com.kino.puber.domain.interactor.player.StreamSource
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.domain.model.SubtitleSize
 import com.kino.puber.ui.feature.player.model.ActivePanel
 import com.kino.puber.ui.feature.player.model.AudioTrackUIState
@@ -62,6 +63,9 @@ internal abstract class PlayerVMTestFixture {
             every { currentPosition } returns 0L
             every { duration } returns 2_400_000L
             every { bufferedPosition } returns 0L
+            every { bluetoothAudioDelay } returns BluetoothAudioDelay.OFF
+            every { bluetoothSyncControlsEnabled } returns true
+            every { isBluetoothOutputConnected } returns true
         }
 
         coEvery { interactor.getItemDetails(any()) } returns testItem

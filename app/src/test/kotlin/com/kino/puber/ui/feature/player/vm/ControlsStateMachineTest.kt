@@ -140,6 +140,17 @@ class ControlsStateMachineTest {
     }
 
     @Test
+    fun `closePanel_fromBluetoothSync_returnsToAudioPanel`() {
+        machine.openPanel(ActivePanel.AudioSubtitles, playbackIntent = PlaybackIntent.PlayRequested)
+        machine.openPanel(ActivePanel.BluetoothSync, playbackIntent = PlaybackIntent.PlayRequested)
+
+        val effects = machine.closePanel()
+
+        assertEquals(ActivePanel.AudioSubtitles, machine.state.activePanel)
+        assertTrue(effects.contains(ControlsStateMachine.Effect.CancelHide))
+    }
+
+    @Test
     fun `closePanel_restoresFocusTarget`() {
         machine.openPanel(ActivePanel.Episodes, playbackIntent = PlaybackIntent.Paused)
 

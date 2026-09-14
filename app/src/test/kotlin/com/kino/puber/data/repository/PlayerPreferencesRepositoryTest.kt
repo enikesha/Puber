@@ -2,6 +2,7 @@ package com.kino.puber.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.domain.model.TrackPreferenceScope
 import io.mockk.every
 import io.mockk.mockk
@@ -19,6 +20,8 @@ internal class PlayerPreferencesRepositoryTest {
 
         assertTrue(repository.discardEmbeddedArtworkMetadata)
         assertFalse(repository.hagcPlaybackEnabled)
+        assertEquals(BluetoothAudioDelay.OFF, repository.bluetoothAudioDelay)
+        assertFalse(repository.bluetoothSyncControlsEnabled)
     }
 
     @Test
@@ -27,10 +30,14 @@ internal class PlayerPreferencesRepositoryTest {
 
         fixture.repository.discardEmbeddedArtworkMetadata = false
         fixture.repository.hagcPlaybackEnabled = true
+        fixture.repository.bluetoothAudioDelay = BluetoothAudioDelay.NEGATIVE_MS_250
+        fixture.repository.bluetoothSyncControlsEnabled = true
 
         val restoredRepository = PlayerPreferencesRepository(fixture.context)
         assertFalse(restoredRepository.discardEmbeddedArtworkMetadata)
         assertTrue(restoredRepository.hagcPlaybackEnabled)
+        assertEquals(BluetoothAudioDelay.NEGATIVE_MS_250, restoredRepository.bluetoothAudioDelay)
+        assertTrue(restoredRepository.bluetoothSyncControlsEnabled)
     }
 
     @Test

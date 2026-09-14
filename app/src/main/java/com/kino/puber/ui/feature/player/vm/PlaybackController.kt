@@ -32,6 +32,7 @@ import com.kino.puber.R
 import com.kino.puber.data.api.models.SubtitleLink
 import com.kino.puber.data.repository.PlayerPreferencesRepository
 import com.kino.puber.domain.interactor.player.StreamSource
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.ui.feature.player.model.AudioTrackUIState
 import com.kino.puber.ui.feature.player.model.isOriginalAudioTrack
 import com.kino.puber.ui.feature.player.model.BufferPreset
@@ -55,6 +56,9 @@ internal interface PlaybackControl {
     val playbackIntent: PlaybackIntent
     val shouldKeepScreenOn: Boolean
     val bufferedPosition: Long
+    val bluetoothAudioDelay: BluetoothAudioDelay
+    val bluetoothSyncControlsEnabled: Boolean
+    val isBluetoothOutputConnected: Boolean
 
     fun setCallback(callback: Callback)
     fun prepare(
@@ -70,6 +74,8 @@ internal interface PlaybackControl {
     fun pause()
     fun seekTo(positionMs: Long)
     fun setSpeed(speed: Float)
+    fun previewBluetoothAudioDelay(delay: BluetoothAudioDelay)
+    fun saveBluetoothAudioDelay(delay: BluetoothAudioDelay)
     fun selectAudioTrack(groupIndex: Int)
     fun selectSubtitle(track: SubtitleTrackUIState?)
     fun release()
@@ -92,6 +98,9 @@ internal class PlaybackController(
     private val callbackGate = PlaybackCallbackGate()
     private val mediaItemFactory = PlaybackMediaItemFactory()
     private val subtitleTrackSelector = SubtitleTrackSelector()
+    private val playbackDelayController = PlaybackDelayController(
+        playerPreferencesRepository.bluetoothAudioDelay.milliseconds,
+    )
 
     @OptIn(UnstableApi::class)
     private val bandwidthMeter = DefaultBandwidthMeter.Builder(context).build()
@@ -106,6 +115,12 @@ internal class PlaybackController(
     override val shouldKeepScreenOn: Boolean
         get() = playbackSnapshot().shouldKeepScreenOn
     override val bufferedPosition: Long get() = exoPlayer?.bufferedPosition ?: 0L
+    override val bluetoothAudioDelay: BluetoothAudioDelay
+        get() = playerPreferencesRepository.bluetoothAudioDelay
+    override val bluetoothSyncControlsEnabled: Boolean
+        get() = playerPreferencesRepository.bluetoothSyncControlsEnabled
+    override val isBluetoothOutputConnected: Boolean
+        get() = applyCurrentBluetoothRoute()
     
     private fun createPlayerListener(session: PlaybackCallbackGate.Session) =
         object : Player.Listener {
@@ -192,6 +207,7 @@ internal class PlaybackController(
     ) {
         release()
         ac3FallbackPolicy.reset()
+        applyCurrentBluetoothRoute()
         useFastDns = fastDns
 
         val bufferParams = DeviceBufferConfig.resolve(context, bufferPreset)
@@ -235,14 +251,12 @@ internal class PlaybackController(
 
         val mediaSourceFactory = createMediaSourceFactory(dataSourceFactory!!)
 
-        val player = ExoPlayer.Builder(context)
-            .setLoadControl(loadControl)
-            .setBandwidthMeter(bandwidthMeter)
-            .setTrackSelector(trackSelector)
-            .setMediaSourceFactory(mediaSourceFactory)
-            .setHandleAudioBecomingNoisy(true)
-            .setAudioAttributes(audioAttributes, /* handleAudioFocus = */ true)
-            .build()
+        val player = createPlayer(
+            loadControl = loadControl,
+            trackSelector = trackSelector,
+            mediaSourceFactory = mediaSourceFactory,
+            audioAttributes = audioAttributes,
+        )
         exoPlayer = player
         bindCallbackSession(player)
 
@@ -256,6 +270,53 @@ internal class PlaybackController(
             player.playWhenReady = true
         }
         notifyPlaybackState()
+    }
+
+    private fun createPlayer(
+        loadControl: DefaultLoadControl,
+        trackSelector: DefaultTrackSelector,
+        mediaSourceFactory: DefaultMediaSourceFactory,
+        audioAttributes: AudioAttributes,
+    ): ExoPlayer {
+        val playerBuilder = ExoPlayer.Builder(context)
+            .setLoadControl(loadControl)
+            .setBandwidthMeter(bandwidthMeter)
+            .setTrackSelector(trackSelector)
+            .setMediaSourceFactory(mediaSourceFactory)
+            .setHandleAudioBecomingNoisy(true)
+            .setAudioAttributes(audioAttributes, /* handleAudioFocus = */ true)
+
+        configureBluetoothSync(playerBuilder)
+        return playerBuilder.build()
+    }
+
+    private fun configureBluetoothSync(playerBuilder: ExoPlayer.Builder) {
+        playerBuilder.setRenderersFactory(
+            BluetoothSyncRenderersFactory(context, playbackDelayController)
+        )
+    }
+
+    override fun saveBluetoothAudioDelay(delay: BluetoothAudioDelay) {
+        playerPreferencesRepository.bluetoothAudioDelay = delay
+        previewBluetoothAudioDelay(delay)
+    }
+
+    override fun previewBluetoothAudioDelay(delay: BluetoothAudioDelay) {
+        playbackDelayController.delayMs = if (BluetoothAudioRouteDetector.hasConnectedOutput(context)) {
+            delay.milliseconds
+        } else {
+            BluetoothAudioDelay.OFF.milliseconds
+        }
+    }
+
+    private fun applyCurrentBluetoothRoute(): Boolean {
+        val isBluetoothConnected = BluetoothAudioRouteDetector.hasConnectedOutput(context)
+        playbackDelayController.delayMs = if (isBluetoothConnected) {
+            playerPreferencesRepository.bluetoothAudioDelay.milliseconds
+        } else {
+            BluetoothAudioDelay.OFF.milliseconds
+        }
+        return isBluetoothConnected
     }
 
     @OptIn(UnstableApi::class)

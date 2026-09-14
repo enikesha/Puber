@@ -3,6 +3,7 @@ package com.kino.puber.ui.feature.device.settings.model
 import androidx.compose.runtime.Immutable
 import com.kino.puber.core.model.NavigationMode
 import com.kino.puber.core.ui.uikit.model.ApiDomainDialogState
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.domain.interactor.device.DeviceSettingType
 import com.kino.puber.domain.model.TrackPreferenceScope
 
@@ -33,6 +34,8 @@ internal sealed interface DeviceSettingsState {
         val discardEmbeddedArtworkMetadata: Boolean = true,
         val hagcPlaybackEnabled: Boolean = false,
         val trackPreferenceScope: TrackPreferenceScope = TrackPreferenceScope.PER_VIDEO,
+        val bluetoothAudioDelay: BluetoothAudioDelay = BluetoothAudioDelay.OFF,
+        val bluetoothSyncControlsEnabled: Boolean = false,
         val navigationMode: NavigationMode = NavigationMode.TopTabs,
         val showCartoonsTab: Boolean = false,
         val showAnimeTab: Boolean = false,

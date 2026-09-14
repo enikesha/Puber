@@ -16,6 +16,15 @@
 
     <!-- Audio -->
     <string name="settings_prefer_surround_audio">Объемный звук (AC3)</string>
+    <string name="settings_bluetooth_sync_controls">Показывать настройку Bluetooth-синхронизации</string>
+    <string name="settings_bluetooth_sync_controls_description">Показывать настройку во время просмотра, когда звук выводится по Bluetooth</string>
+    <string name="settings_bluetooth_audio_delay_value">%1$+d мс</string>
+    <string name="player_sync_change_offset">Изменить сдвиг звука</string>
+    <string name="player_sync_offset_title">Сдвиг звука</string>
+    <string name="player_sync_adjust_hint">◀ звук позже · видео позже ▶</string>
+    <string name="player_sync_reset_hint">↑ сбросить · OK сохранить</string>
+    <string name="player_sync_value">%1$+d мс</string>
+    <string name="player_sync_value_zero">0 мс</string>
     <string name="settings_watched_indicators">Показывать отметки просмотренного</string>
 
     <!-- Remembered audio and subtitle tracks -->

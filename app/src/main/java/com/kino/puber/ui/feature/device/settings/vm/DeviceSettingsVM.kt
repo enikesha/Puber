@@ -83,6 +83,9 @@ internal class DeviceSettingsVM(
                                     playerPreferencesRepository.discardEmbeddedArtworkMetadata,
                                 hagcPlaybackEnabled = playerPreferencesRepository.hagcPlaybackEnabled,
                                 trackPreferenceScope = playerPreferencesRepository.trackPreferenceScope,
+                                bluetoothAudioDelay = playerPreferencesRepository.bluetoothAudioDelay,
+                                bluetoothSyncControlsEnabled =
+                                    playerPreferencesRepository.bluetoothSyncControlsEnabled,
                                 navigationMode = navigationPreferencesRepository.getNavigationMode(),
                                 showCartoonsTab = contentPreferences.showCartoonsTab,
                                 showAnimeTab = contentPreferences.showAnimeTab,
@@ -117,6 +120,7 @@ internal class DeviceSettingsVM(
             DeviceSettingsActions.ToggleHagcPlayback -> toggleHagcPlayback()
             is DeviceSettingsActions.ChangeTrackPreferenceScope ->
                 changeTrackPreferenceScope(action.scope)
+            DeviceSettingsActions.ToggleBluetoothSyncControls -> toggleBluetoothSyncControls()
             is DeviceSettingsActions.ChangeNavigationMode -> onChangeNavigationMode(action.mode)
             DeviceSettingsActions.ToggleCartoonsTab -> toggleCartoonsTab()
             DeviceSettingsActions.ToggleAnimeTab -> toggleAnimeTab()
@@ -313,6 +317,16 @@ internal class DeviceSettingsVM(
         if (currentState.trackPreferenceScope == scope) return
         playerPreferencesRepository.trackPreferenceScope = scope
         updateViewState(stateValue.copy(state = currentState.copy(trackPreferenceScope = scope)))
+    }
+
+    private fun toggleBluetoothSyncControls() {
+        val currentState = stateValue.state
+        if (currentState !is DeviceSettingsState.Success) return
+        val newValue = !currentState.bluetoothSyncControlsEnabled
+        playerPreferencesRepository.bluetoothSyncControlsEnabled = newValue
+        updateViewState(
+            stateValue.copy(state = currentState.copy(bluetoothSyncControlsEnabled = newValue))
+        )
     }
 
     private fun onChangeNavigationMode(mode: NavigationMode) {

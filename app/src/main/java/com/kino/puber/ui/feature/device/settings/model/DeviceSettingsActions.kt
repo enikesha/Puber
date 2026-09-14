@@ -32,4 +32,10 @@ internal sealed class DeviceSettingsActions : UIAction {
     data class SaveApiDomain(val domain: String) : DeviceSettingsActions()
     data object DetectApiDomain : DeviceSettingsActions()
     data object ResetApiDomain : DeviceSettingsActions()
+    data object OpenMyShowsDialog : DeviceSettingsActions()
+    data object CloseMyShowsDialog : DeviceSettingsActions()
+    data class ConnectMyShows(val token: String) : DeviceSettingsActions()
+    data object ValidateMyShowsConnection : DeviceSettingsActions()
+    data object DisconnectMyShows : DeviceSettingsActions()
+    data object ToggleMyShowsSync : DeviceSettingsActions()
 }

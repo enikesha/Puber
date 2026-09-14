@@ -47,6 +47,12 @@ internal class CryptoPreferenceRepository(
 
     override fun getApiDomain(): String? = getString(API_DOMAIN_KEY_NAME)
 
+    override fun saveMyShowsToken(token: String) = saveString(MYSHOWS_TOKEN_KEY_NAME, token)
+
+    override fun getMyShowsToken(): String? = getString(MYSHOWS_TOKEN_KEY_NAME)
+
+    override fun clearMyShowsToken() = saveString(MYSHOWS_TOKEN_KEY_NAME, null)
+
     private fun saveString(name: String, value: String?) {
         sharedPreferences.edit {
             val encrypted = encrypt(SECURITY_KEY_ALIAS, value.orEmpty())
@@ -114,6 +120,7 @@ internal class CryptoPreferenceRepository(
         private const val REFRESH_TOKEN_KEY_NAME = "KINOPUBER_REFRESH_TOKEN"
         private const val USERNAME_KEY_NAME = "KINOPUBER_USERNAME_KEY_NAME"
         private const val API_DOMAIN_KEY_NAME = "KINOPUBER_API_DOMAIN"
+        private const val MYSHOWS_TOKEN_KEY_NAME = "KINOPUBER_MYSHOWS_TOKEN"
         private const val SECURITY_KEY_ALIAS = "SECURITY_KEY_ALIAS"
     }
 }

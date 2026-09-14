@@ -10,6 +10,8 @@ import com.kino.puber.domain.interactor.device.DeviceSettingInteractor
 import com.kino.puber.domain.interactor.device.IDeviceInfoInteractor
 import com.kino.puber.domain.interactor.device.IDeviceSettingInteractor
 import com.kino.puber.domain.interactor.genre.GenreInteractor
+import com.kino.puber.domain.interactor.myshows.IMyShowsSyncInteractor
+import com.kino.puber.domain.interactor.myshows.MyShowsSyncInteractor
 import com.kino.puber.domain.interactor.update.AppUpdateInteractor
 import com.kino.puber.domain.interactor.update.IAppUpdateInteractor
 import org.koin.core.module.dsl.bind
@@ -25,4 +27,12 @@ val interactorModule = module {
     singleOf(::WatchLaterBookmarkInteractor)
     singleOf(::SavedItemInteractor)
     singleOf(::ApiDomainInteractor)
+    single<IMyShowsSyncInteractor> {
+        MyShowsSyncInteractor(
+            apiClient = get(),
+            preferences = get(),
+            itemDetailsRepository = get(),
+            pairingServer = get(),
+        )
+    }
 }

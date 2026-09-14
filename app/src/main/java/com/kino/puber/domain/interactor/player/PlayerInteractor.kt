@@ -9,6 +9,7 @@ import com.kino.puber.data.api.models.SubtitleLink
 import com.kino.puber.data.api.models.VideoFile
 import com.kino.puber.data.repository.ItemDetailsRepository
 import com.kino.puber.data.repository.PlayerPreferencesRepository
+import com.kino.puber.domain.interactor.myshows.IMyShowsSyncInteractor
 import com.kino.puber.domain.model.SubtitleSize
 import com.kino.puber.ui.feature.player.model.BufferPreset
 import kotlinx.coroutines.CancellationException
@@ -57,6 +58,7 @@ internal class PlayerInteractor(
     private val api: KinoPubApiClient,
     private val itemDetailsRepository: ItemDetailsRepository,
     private val playerPreferencesRepository: PlayerPreferencesRepository,
+    private val myShowsSyncInteractor: IMyShowsSyncInteractor,
 ) {
 
     suspend fun getItemDetails(id: Int): Item {
@@ -263,6 +265,9 @@ internal class PlayerInteractor(
     suspend fun markAsWatched(id: Int, season: Int? = null, videoNumber: Int? = null) {
         api.toggleWatchingStatus(id, status = WATCHED_STATUS, season = season, video = videoNumber).getOrThrow()
         itemDetailsRepository.invalidate(id)
+        if (season != null && videoNumber != null) {
+            myShowsSyncInteractor.enqueueEpisodeWatched(id, season, videoNumber)
+        }
     }
 
     suspend fun markCurrentAsWatched(id: Int, season: Int? = null, videoNumber: Int? = null): Item {
@@ -284,6 +289,9 @@ internal class PlayerInteractor(
             video = episode,
         ).getOrThrow()
         itemDetailsRepository.invalidate(id)
+        if (watched) {
+            myShowsSyncInteractor.enqueueEpisodeWatched(id, season, episode)
+        }
         return loadItemDetailsAfterMutation(id)
     }
 
@@ -294,6 +302,9 @@ internal class PlayerInteractor(
             season = season,
         ).getOrThrow()
         itemDetailsRepository.invalidate(id)
+        if (watched) {
+            myShowsSyncInteractor.enqueueSeasonWatched(id, season)
+        }
         return loadItemDetailsAfterMutation(id)
     }
 

@@ -64,6 +64,31 @@ current step or finding.
   authenticated responses out of Git and workflow evidence unless an explicit
   task authorization permits the exact action.
 
+## Local Chromecast Release Deployment
+
+- Commit all finished implementation before building or deploying. Build from
+  the intended committed `HEAD`; never include unrelated uncommitted changes in
+  a deployed APK.
+- The known local Chromecast is `sabrina_prod_stable` (`device:sabrina`). Its
+  direct ADB serial was `192.168.0.149:42127` on 2026-08-25; it may also appear
+  through an `_adb-tls-connect._tcp` alias. Re-resolve the current exact serial
+  with the mobile resource-lock adapter and `adb devices -l` before use.
+- Physical-device deployment still requires explicit authorization for the
+  current task. Acquire the exact serial's shared resource lock before any
+  install, launch, shell, log, input, or MCP call.
+- Build the committed production release with `:app:assembleProdRelease`. The
+  APK is `app/build/outputs/apk/prod/release/app-prod-release.apk` and the
+  package is `com.kino.puber`. In worktrees, use `./tools/agentw` and supply
+  required credentials transiently through the environment; never copy them
+  into worktree `local.properties`.
+- Install only through `.kent/adapters/mobile/android-apk-install-preserve`
+  using the selected serial and production package. Never uninstall, clear app
+  data, allow a downgrade, or bypass signer validation implicitly.
+- On this host, Homebrew `apkanalyzer` needs
+  `APKANALYZER_OPTS=-Dcom.android.sdklib.toolsdir=$HOME/Library/Android/sdk/cmdline-tools/latest`.
+  Pin `APKSIGNER=$HOME/Library/Android/sdk/build-tools/36.1.0/apksigner` until
+  the preservation adapter accepts Build Tools 37's `V2 Signer` output label.
+
 ## Repository Hygiene
 
 - Generated/modified file content and commit messages are English unless the

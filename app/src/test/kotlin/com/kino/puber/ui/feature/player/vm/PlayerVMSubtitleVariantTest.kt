@@ -41,10 +41,8 @@ internal class PlayerVMSubtitleVariantTest : PlayerVMTestFixture() {
         assertEquals("hls-ukrainian", selectedTrack.playerTrackId)
         verify { playbackController.selectSubtitle(selectedTrack) }
         verify {
-            interactor.saveTrackPreferences(
+            interactor.savePreferredSubtitleTrack(
                 42,
-                "eng",
-                "English",
                 "uk",
                 "https://cdn.test/subtitle/ukrainian.vtt",
             )
@@ -257,14 +255,14 @@ internal class PlayerVMSubtitleVariantTest : PlayerVMTestFixture() {
         vm.onAction(PlayerAction.SelectAudioTrack(0))
 
         verify {
-            interactor.saveTrackPreferences(
+            interactor.savePreferredAudioTrack(
                 42,
                 "eng",
                 "English",
-                "rus",
-                "https://api.test/subtitles/rus.srt",
+                false,
             )
         }
+        verify(exactly = 0) { interactor.savePreferredSubtitleTrack(any(), any(), any()) }
     }
 
     @Test
@@ -277,7 +275,7 @@ internal class PlayerVMSubtitleVariantTest : PlayerVMTestFixture() {
 
         vm.onAction(PlayerAction.SelectSubtitle(0))
 
-        verify { interactor.saveTrackPreferences(42, "eng", "English", null, null) }
+        verify { interactor.savePreferredSubtitleTrack(42, "", "") }
     }
 
     private fun manifestTrack(

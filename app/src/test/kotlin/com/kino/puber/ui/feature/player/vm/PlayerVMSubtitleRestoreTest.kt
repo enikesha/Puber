@@ -34,7 +34,7 @@ internal class PlayerVMSubtitleRestoreTest : PlayerVMTestFixture() {
         verify { playbackController.selectSubtitle(selected) }
         vm.onAction(PlayerAction.SelectAudioTrack(0))
         verify {
-            interactor.saveTrackPreferences(42, "en", "English", "en", "subtitle:English Forced")
+            interactor.savePreferredAudioTrack(42, "en", "English", false)
         }
     }
 
@@ -60,7 +60,7 @@ internal class PlayerVMSubtitleRestoreTest : PlayerVMTestFixture() {
         callbackSlot.captured.onTracksUpdated(audioTracks, 0, manifestTracks("low"))
         vm.onAction(PlayerAction.SelectAudioTrack(0))
         verify {
-            interactor.saveTrackPreferences(42, "en", "English", "en", "subtitle:English Forced")
+            interactor.savePreferredAudioTrack(42, "en", "English", false)
         }
         every { interactor.getPreferredSubtitleUrl(42) } returns "subtitle:English Forced"
 
@@ -93,7 +93,7 @@ internal class PlayerVMSubtitleRestoreTest : PlayerVMTestFixture() {
         val vm = startedWithForcedSubtitle()
         vm.onAction(PlayerAction.SelectQuality(1))
         vm.onAction(PlayerAction.SelectSubtitle(0))
-        verify { interactor.saveTrackPreferences(42, "en", "English", null, null) }
+        verify { interactor.savePreferredSubtitleTrack(42, "", "") }
         every { interactor.getPreferredSubtitleLang(42) } returns null
         every { interactor.getPreferredSubtitleUrl(42) } returns null
 

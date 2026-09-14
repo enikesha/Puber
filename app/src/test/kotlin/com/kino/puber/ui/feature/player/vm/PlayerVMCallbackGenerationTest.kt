@@ -2,6 +2,7 @@ package com.kino.puber.ui.feature.player.vm
 
 import com.kino.puber.data.api.models.SubtitleLink
 import com.kino.puber.domain.interactor.player.StreamSource
+import com.kino.puber.domain.model.BluetoothAudioDelay
 import com.kino.puber.ui.feature.player.model.BufferPreset
 import com.kino.puber.ui.feature.player.model.PlayerAction
 import com.kino.puber.ui.feature.player.model.PlayerViewState
@@ -127,6 +128,9 @@ internal class PlayerVMCallbackGenerationTest : PlayerVMTestFixture() {
         override val playbackIntent: PlaybackIntent = PlaybackIntent.PlayRequested
         override val shouldKeepScreenOn: Boolean = true
         override val bufferedPosition: Long = 0L
+        override val bluetoothAudioDelay: BluetoothAudioDelay = BluetoothAudioDelay.OFF
+        override val bluetoothSyncControlsEnabled: Boolean = false
+        override val isBluetoothOutputConnected: Boolean = false
 
         override fun setCallback(callback: PlaybackControl.Callback) {
             callbackGate.setCallback(callback)
@@ -153,6 +157,10 @@ internal class PlayerVMCallbackGenerationTest : PlayerVMTestFixture() {
         override fun seekTo(positionMs: Long) = Unit
 
         override fun setSpeed(speed: Float) = Unit
+
+        override fun previewBluetoothAudioDelay(delay: BluetoothAudioDelay) = Unit
+
+        override fun saveBluetoothAudioDelay(delay: BluetoothAudioDelay) = Unit
 
         override fun selectAudioTrack(groupIndex: Int) = Unit
 

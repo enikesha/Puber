@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -59,6 +60,7 @@ import com.kino.puber.core.ui.uikit.model.ApiDomainDialogState
 import com.kino.puber.core.ui.uikit.model.CommonAction
 import com.kino.puber.core.ui.uikit.model.UIAction
 import com.kino.puber.core.ui.uikit.theme.highlightOnFocus
+import com.kino.puber.domain.model.TrackPreferenceScope
 import com.kino.puber.ui.feature.device.settings.model.DeviceSettingUIModel
 import com.kino.puber.ui.feature.device.settings.model.DeviceSettingsActions
 import com.kino.puber.ui.feature.device.settings.model.DeviceSettingsState
@@ -244,6 +246,7 @@ private fun DeviceSettingsLazyColumn(
         deviceSettingItems(state, listState, onAction)
         localPreferencesItems(state, onAction)
         skipSegmentsItems(state, onAction)
+        trackPreferenceScopeItems(state, onAction)
         navigationModeItems(state, onAction)
         applicationItems(
             state = state,
@@ -376,6 +379,37 @@ private fun LazyListScope.skipSegmentsItems(
             label = stringResource(R.string.settings_skip_credits),
             checked = state.skipCreditsEnabled,
             onToggle = { onAction(DeviceSettingsActions.ToggleSkipCredits) },
+        )
+    }
+}
+
+private fun LazyListScope.trackPreferenceScopeItems(
+    state: DeviceSettingsState.Success,
+    onAction: (UIAction) -> Unit,
+) {
+    item {
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+    item {
+        Column {
+            Text(
+                text = stringResource(R.string.settings_track_preference_scope_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = stringResource(R.string.settings_track_preference_scope_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    item {
+        TrackPreferenceScopeRadioGroup(
+            currentScope = state.trackPreferenceScope,
+            onScopeSelected = { scope ->
+                onAction(DeviceSettingsActions.ChangeTrackPreferenceScope(scope))
+            },
         )
     }
 }
@@ -675,42 +709,106 @@ private fun NavigationModeRadioGroup(
     currentMode: NavigationMode,
     onModeSelected: (NavigationMode) -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .selectableGroup(),
-    ) {
+    SettingsRadioGroup {
         NavigationMode.entries.forEach { mode ->
             val label = when (mode) {
                 NavigationMode.SideDrawer -> stringResource(R.string.settings_navigation_drawer)
                 NavigationMode.TopTabs -> stringResource(R.string.settings_navigation_top_tabs)
             }
-            val isSelected = mode == currentMode
-            val interactionSource = remember { MutableInteractionSource() }
-            val isFocused by interactionSource.collectIsFocusedAsState()
+            SettingsRadioItem(
+                label = label,
+                selected = mode == currentMode,
+                onClick = { onModeSelected(mode) },
+            )
+        }
+    }
+}
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .highlightOnFocus(isFocused)
-                    .selectable(
-                        selected = isSelected,
-                        interactionSource = interactionSource,
-                        indication = null,
-                        onClick = { onModeSelected(mode) },
-                    )
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                androidx.compose.material3.RadioButton(
-                    selected = isSelected,
-                    onClick = null,
-                )
+@Composable
+private fun TrackPreferenceScopeRadioGroup(
+    currentScope: TrackPreferenceScope,
+    onScopeSelected: (TrackPreferenceScope) -> Unit,
+) {
+    SettingsRadioGroup {
+        trackPreferenceScopeOrder.forEach { scope ->
+            SettingsRadioItem(
+                label = stringResource(scope.labelRes()),
+                description = stringResource(scope.descriptionRes()),
+                selected = scope == currentScope,
+                onClick = { onScopeSelected(scope) },
+            )
+        }
+    }
+}
+
+/** The scopes are offered from the narrowest to the widest, starting with the default. */
+private val trackPreferenceScopeOrder = listOf(
+    TrackPreferenceScope.PER_VIDEO,
+    TrackPreferenceScope.PER_TITLE,
+    TrackPreferenceScope.GLOBAL,
+)
+
+private fun TrackPreferenceScope.labelRes(): Int = when (this) {
+    TrackPreferenceScope.PER_VIDEO -> R.string.settings_track_preference_scope_per_video
+    TrackPreferenceScope.PER_TITLE -> R.string.settings_track_preference_scope_per_title
+    TrackPreferenceScope.GLOBAL -> R.string.settings_track_preference_scope_global
+}
+
+private fun TrackPreferenceScope.descriptionRes(): Int = when (this) {
+    TrackPreferenceScope.PER_VIDEO -> R.string.settings_track_preference_scope_per_video_description
+    TrackPreferenceScope.PER_TITLE -> R.string.settings_track_preference_scope_per_title_description
+    TrackPreferenceScope.GLOBAL -> R.string.settings_track_preference_scope_global_description
+}
+
+@Composable
+private fun SettingsRadioGroup(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectableGroup(),
+        content = content,
+    )
+}
+
+@Composable
+private fun SettingsRadioItem(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    description: String? = null,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .highlightOnFocus(isFocused)
+            .selectable(
+                selected = selected,
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.RadioButton(
+            selected = selected,
+            onClick = null,
+        )
+        Column(modifier = Modifier.padding(start = 12.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.secondary,
+            )
+            if (description != null) {
                 Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(start = 12.dp),
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }

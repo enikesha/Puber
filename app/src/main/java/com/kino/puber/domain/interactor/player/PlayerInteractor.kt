@@ -307,19 +307,33 @@ internal class PlayerInteractor(
         return playerPreferencesRepository.getPreferredSubtitleUrl(itemId)
     }
 
-    fun saveTrackPreferences(
+    fun isPreferredAudioOriginal(itemId: Int): Boolean {
+        return playerPreferencesRepository.isPreferredAudioOriginal(itemId)
+    }
+
+    fun savePreferredAudioTrack(
         itemId: Int,
         audioLang: String?,
         audioLabel: String?,
-        subtitleLang: String?,
-        subtitleUrl: String?,
+        isOriginal: Boolean,
     ) {
-        playerPreferencesRepository.saveTrackPreferences(
+        playerPreferencesRepository.savePreferredAudioTrack(
             itemId = itemId,
             audioLang = audioLang,
             audioLabel = audioLabel,
-            subtitleLang = subtitleLang,
-            subtitleUrl = subtitleUrl,
+            isOriginal = isOriginal,
+        )
+    }
+
+    fun savePreferredSubtitleTrack(
+        itemId: Int,
+        subtitleLang: String?,
+        subtitleUrl: String?,
+    ) {
+        playerPreferencesRepository.savePreferredSubtitleTrack(
+            itemId = itemId,
+            subtitleLang = subtitleLang.orEmpty(),
+            subtitleUrl = subtitleUrl.orEmpty(),
         )
     }
 

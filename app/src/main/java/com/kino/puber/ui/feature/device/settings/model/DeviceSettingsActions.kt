@@ -3,6 +3,7 @@ package com.kino.puber.ui.feature.device.settings.model
 import com.kino.puber.core.model.NavigationMode
 import com.kino.puber.core.ui.uikit.model.UIAction
 import com.kino.puber.domain.interactor.device.DeviceSettingType
+import com.kino.puber.domain.model.TrackPreferenceScope
 
 internal sealed class DeviceSettingsActions : UIAction {
 
@@ -18,6 +19,7 @@ internal sealed class DeviceSettingsActions : UIAction {
     data object ToggleWatchedIndicators : DeviceSettingsActions()
     data object ToggleDiscardEmbeddedArtworkMetadata : DeviceSettingsActions()
     data object ToggleHagcPlayback : DeviceSettingsActions()
+    data class ChangeTrackPreferenceScope(val scope: TrackPreferenceScope) : DeviceSettingsActions()
     data class ChangeNavigationMode(val mode: NavigationMode) : DeviceSettingsActions()
     data object ToggleCartoonsTab : DeviceSettingsActions()
     data object ToggleAnimeTab : DeviceSettingsActions()

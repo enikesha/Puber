@@ -2,9 +2,12 @@ package com.kino.puber.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.kino.puber.domain.model.TrackPreferenceScope
 import io.mockk.every
 import io.mockk.mockk
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -30,8 +33,151 @@ internal class PlayerPreferencesRepositoryTest {
         assertTrue(restoredRepository.hagcPlaybackEnabled)
     }
 
+    @Test
+    fun trackPreferences_applyAcrossDifferentItems() {
+        val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
+
+        fixture.repository.saveAudio(itemId = 42, lang = "rus", label = "Russian")
+        fixture.repository.savePreferredSubtitleTrack(
+            itemId = 42,
+            subtitleLang = "eng",
+            subtitleUrl = "english.vtt",
+        )
+
+        val repository = PlayerPreferencesRepository(fixture.context)
+        assertEquals("rus", repository.getPreferredAudioLang(itemId = 42))
+        assertEquals("rus", repository.getPreferredAudioLang(itemId = 99))
+        assertEquals("Russian", repository.getPreferredAudioLabel(itemId = 99))
+        assertEquals("eng", repository.getPreferredSubtitleLang(itemId = 42))
+        assertEquals("eng", repository.getPreferredSubtitleLang(itemId = 99))
+        assertEquals("english.vtt", repository.getPreferredSubtitleUrl(itemId = 99))
+    }
+
+    @Test
+    fun subtitleOff_isPersistedAsExplicitGlobalPreference() {
+        val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
+
+        fixture.repository.savePreferredSubtitleTrack(itemId = 42, subtitleLang = "", subtitleUrl = "")
+
+        val repository = PlayerPreferencesRepository(fixture.context)
+        assertEquals("", repository.getPreferredSubtitleLang(itemId = 42))
+        assertEquals("", repository.getPreferredSubtitleLang(itemId = 99))
+        assertEquals("", repository.getPreferredSubtitleUrl(itemId = 99))
+    }
+
+    @Test
+    fun trackPreferenceScope_defaultsToPerVideo() {
+        assertEquals(TrackPreferenceScope.PER_VIDEO, fixture().repository.trackPreferenceScope)
+    }
+
+    @Test
+    fun perVideoScope_startsAnUnseenItemWithNothingRemembered() {
+        val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
+        fixture.repository.saveAudio(itemId = 7, lang = "eng", label = "English")
+
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.PER_VIDEO
+        fixture.repository.saveAudio(itemId = 42, lang = "rus", label = "Russian")
+
+        assertEquals("rus", fixture.repository.getPreferredAudioLang(itemId = 42))
+        assertNull(fixture.repository.getPreferredAudioLang(itemId = 99))
+    }
+
+    @Test
+    fun perVideoScope_leavesTheSharedSelectionUntouched() {
+        val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
+        fixture.repository.saveAudio(itemId = 42, lang = "rus", label = "Russian")
+
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.PER_VIDEO
+        fixture.repository.saveAudio(itemId = 42, lang = "eng", label = "English")
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
+
+        assertEquals("rus", fixture.repository.getPreferredAudioLang(itemId = 42))
+    }
+
+    @Test
+    fun perTitleScope_keepsSelectionsOfDifferentItemsApart() {
+        val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.PER_TITLE
+
+        fixture.repository.saveAudio(itemId = 42, lang = "rus", label = "Russian")
+        fixture.repository.savePreferredSubtitleTrack(
+            itemId = 42,
+            subtitleLang = "eng",
+            subtitleUrl = "english.vtt",
+        )
+        fixture.repository.saveAudio(itemId = 99, lang = "eng", label = "English")
+
+        val repository = PlayerPreferencesRepository(fixture.context)
+        assertEquals("rus", repository.getPreferredAudioLang(itemId = 42))
+        assertEquals("eng", repository.getPreferredAudioLang(itemId = 99))
+        assertEquals("eng", repository.getPreferredSubtitleLang(itemId = 42))
+        assertNull(repository.getPreferredSubtitleLang(itemId = 99))
+    }
+
+    @Test
+    fun perTitleScope_fallsBackToTheGlobalSelectionOfAnUnseenItem() {
+        val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
+        fixture.repository.saveAudio(itemId = 42, lang = "rus", label = "Russian")
+
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.PER_TITLE
+
+        assertEquals("rus", fixture.repository.getPreferredAudioLang(itemId = 99))
+    }
+
+    @Test
+    fun globalScope_ignoresThePerTitleSelectionOnceItRemembersItsOwn() {
+        val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.PER_TITLE
+        fixture.repository.saveAudio(itemId = 42, lang = "rus", label = "Russian")
+
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
+        fixture.repository.saveAudio(itemId = 7, lang = "eng", label = "English")
+
+        assertEquals("eng", fixture.repository.getPreferredAudioLang(itemId = 42))
+    }
+
+    @Test
+    fun originalAudio_isRememberedAsAKindRatherThanALanguage() {
+        val fixture = fixture()
+        fixture.repository.trackPreferenceScope = TrackPreferenceScope.GLOBAL
+
+        fixture.repository.savePreferredAudioTrack(
+            itemId = 42,
+            audioLang = "eng",
+            audioLabel = "01. Оригинал (ENG)",
+            isOriginal = true,
+        )
+
+        val repository = PlayerPreferencesRepository(fixture.context)
+        assertTrue(repository.isPreferredAudioOriginal(itemId = 99))
+    }
+
+    @Test
+    fun originalAudio_isClearedWhenATranslatedTrackIsPicked() {
+        val fixture = fixture()
+        fixture.repository.savePreferredAudioTrack(
+            itemId = 42,
+            audioLang = "eng",
+            audioLabel = "01. Оригинал (ENG)",
+            isOriginal = true,
+        )
+
+        fixture.repository.saveAudio(itemId = 42, lang = "rus", label = "02. Дубляж (RUS)")
+
+        assertFalse(fixture.repository.isPreferredAudioOriginal(itemId = 42))
+    }
+
+    private fun PlayerPreferencesRepository.saveAudio(itemId: Int, lang: String, label: String) {
+        savePreferredAudioTrack(itemId = itemId, audioLang = lang, audioLabel = label, isOriginal = false)
+    }
+
     private fun fixture(): Fixture {
-        val preferences = BooleanTestPreferences()
+        val preferences = TestPreferences()
         val context = mockk<Context>()
         every {
             context.getSharedPreferences(any(), Context.MODE_PRIVATE)
@@ -48,21 +194,44 @@ internal class PlayerPreferencesRepositoryTest {
     )
 }
 
-private class BooleanTestPreferences {
-    private val values: MutableMap<String, Boolean> = mutableMapOf()
+private class TestPreferences {
+    private val booleanValues: MutableMap<String, Boolean> = mutableMapOf()
+    private val intValues: MutableMap<String, Int> = mutableMapOf()
     val sharedPreferences: SharedPreferences = mockk()
 
     private val editor: SharedPreferences.Editor = mockk()
+    private val stringValues: MutableMap<String, String?> = mutableMapOf()
 
     init {
         every { sharedPreferences.getBoolean(any(), any()) } answers {
-            values[firstArg()] ?: secondArg()
+            booleanValues[firstArg()] ?: secondArg()
+        }
+        every { sharedPreferences.getInt(any(), any()) } answers {
+            intValues[firstArg()] ?: secondArg()
         }
         every { sharedPreferences.edit() } returns editor
         every { editor.putBoolean(any(), any()) } answers {
-            values[firstArg()] = secondArg()
+            booleanValues[firstArg()] = secondArg()
+            editor
+        }
+        every { editor.putInt(any(), any()) } answers {
+            intValues[firstArg()] = secondArg()
             editor
         }
         every { editor.apply() } returns Unit
+        every { sharedPreferences.getString(any(), any()) } answers {
+            if (stringValues.containsKey(firstArg())) stringValues[firstArg()] else secondArg()
+        }
+        every { sharedPreferences.contains(any()) } answers {
+            stringValues.containsKey(firstArg())
+        }
+        every { editor.putString(any(), any()) } answers {
+            stringValues[firstArg()] = secondArg()
+            editor
+        }
+        every { editor.remove(any()) } answers {
+            stringValues.remove(firstArg())
+            editor
+        }
     }
 }

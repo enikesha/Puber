@@ -9,8 +9,12 @@ internal class AudioTrackPreferenceResolver {
         tracks: List<AudioTrackUIState>,
         preferredLabel: String?,
         preferredLang: String?,
+        preferOriginal: Boolean = false,
     ): Int {
-        val matchers = listOf(
+        // The original track is remembered by kind, so it wins over the saved label and language:
+        // both describe the previous title, whose original was spoken in another language.
+        val matchers = listOfNotNull(
+            { originalMatch(tracks) }.takeIf { preferOriginal },
             { exactLabelMatch(tracks, preferredLabel) },
             { normalizedLabelMatch(tracks, preferredLabel) },
             { voiceTypeAndLanguageMatch(tracks, preferredLabel, preferredLang) },
@@ -29,7 +33,7 @@ internal class AudioTrackPreferenceResolver {
         val matchers = listOf(
             { exactSubtitleUrlMatch(tracks, preferredUrl) },
             { stableSubtitleUrlMatch(tracks, preferredUrl) },
-            { unambiguousSubtitleLanguageMatch(tracks, preferredLang) },
+            { subtitleLanguageMatch(tracks, preferredLang) },
         )
         return matchers.firstNotNullOfOrNull { matcher ->
             matcher().takeIf { it >= 0 }
@@ -50,6 +54,10 @@ internal class AudioTrackPreferenceResolver {
     ): Int {
         val preferredKey = preferredUrl?.stableSubtitleKey() ?: return NO_MATCH
         return tracks.indexOfFirst { it.url.stableSubtitleKey() == preferredKey }
+    }
+
+    private fun originalMatch(tracks: List<AudioTrackUIState>): Int {
+        return tracks.indexOfFirst { it.isOriginal }
     }
 
     private fun exactLabelMatch(
@@ -89,13 +97,12 @@ internal class AudioTrackPreferenceResolver {
         return tracks.indexOfFirst { it.language == preferredLang }
     }
 
-    private fun unambiguousSubtitleLanguageMatch(
+    private fun subtitleLanguageMatch(
         tracks: List<SubtitleTrackUIState>,
         preferredLang: String?,
     ): Int {
         if (preferredLang == null) return NO_MATCH
-        val matches = tracks.withIndex().filter { it.value.language == preferredLang }
-        return matches.singleOrNull()?.index ?: NO_MATCH
+        return tracks.indexOfFirst { it.language == preferredLang }
     }
 
     /** Extracts voice type from HLS labels like "03. Многоголосый. Red Head Sound (RUS)". */

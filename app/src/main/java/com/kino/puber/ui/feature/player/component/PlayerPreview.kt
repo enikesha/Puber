@@ -35,7 +35,7 @@ import com.kino.puber.ui.feature.player.vm.PlaybackIntent
 private val previewAudioTracks = listOf(
     AudioTrackUIState(0, "Русский · ПИФАГОР", "ru"),
     AudioTrackUIState(1, "Русский · аудиодескрипция", "ru"),
-    AudioTrackUIState(2, "English · Original", "en"),
+    AudioTrackUIState(2, "English · Original", "en", isOriginal = true),
 )
 
 private val previewSubtitleTracks = listOf(

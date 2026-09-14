@@ -464,9 +464,11 @@ internal class PlayerVM(
         val subtitleUrl = interactor.getPreferredSubtitleUrl(params.itemId)
         val previousSubtitle = subtitleToRestore
         val hasSubtitlePreference = previousSubtitle != null ||
-            !subtitleLang.isNullOrEmpty() || !subtitleUrl.isNullOrEmpty()
+            subtitleLang != null || subtitleUrl != null
         if (!hasSubtitlePreference) return true
-        if (!hasDiscoveredSubtitleTracks) return false
+        val wantsSubtitles = previousSubtitle?.isOff == false ||
+            !subtitleLang.isNullOrEmpty() || !subtitleUrl.isNullOrEmpty()
+        if (wantsSubtitles && !hasDiscoveredSubtitleTracks) return false
 
         val subtitleIndex = audioTrackPreferenceResolver.findSubtitleTrackIndex(
             tracks = content.subtitleTracks,

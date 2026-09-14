@@ -30,6 +30,7 @@ import com.kino.puber.data.repository.SkipSegmentService
 import com.kino.puber.data.repository.TmdbCastRepository
 import com.kino.puber.data.repository.TmdbIdRepository
 import com.kino.puber.data.preferences.NavigationPreferencesRepository
+import com.kino.puber.data.preferences.BookmarkPreferencesRepository
 import com.kino.puber.data.api.IntroDbAppApiClient
 import com.kino.puber.data.api.TheIntroDbApiClient
 import com.kino.puber.data.api.TmdbApiClient
@@ -95,6 +96,7 @@ val repositoryModule = module {
     singleOf(::TmdbIdRepository)
     singleOf(::SkipSegmentRepository)
     singleOf(::SkipSegmentService)
+    single { BookmarkPreferencesRepository(androidContext()) }
     single { NavigationPreferencesRepository(androidContext()) }
     singleOf(::MyShowsPreferencesRepository)
     single { MyShowsPairingServer() }

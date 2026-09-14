@@ -1,6 +1,7 @@
 package com.kino.puber.ui.feature.device.settings.model
 
 import androidx.compose.runtime.Immutable
+import com.kino.puber.core.model.BookmarkMode
 import com.kino.puber.core.model.NavigationMode
 import com.kino.puber.core.ui.uikit.model.ApiDomainDialogState
 import com.kino.puber.domain.model.BluetoothAudioDelay
@@ -41,6 +42,7 @@ internal sealed interface DeviceSettingsState {
         val bluetoothAudioDelay: BluetoothAudioDelay = BluetoothAudioDelay.OFF,
         val bluetoothSyncControlsEnabled: Boolean = false,
         val navigationMode: NavigationMode = NavigationMode.TopTabs,
+        val bookmarkMode: BookmarkMode = BookmarkMode.Simple,
         val showCartoonsTab: Boolean = false,
         val showAnimeTab: Boolean = false,
         val showAnime: Boolean = true,

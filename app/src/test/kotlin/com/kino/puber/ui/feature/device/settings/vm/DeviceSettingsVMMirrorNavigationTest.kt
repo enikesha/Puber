@@ -1,5 +1,6 @@
 package com.kino.puber.ui.feature.device.settings.vm
 
+import com.kino.puber.core.model.BookmarkMode
 import com.kino.puber.core.model.NavigationMode
 import com.kino.puber.core.error.ErrorHandler
 import com.kino.puber.core.ui.navigation.AppRouter
@@ -7,6 +8,7 @@ import com.kino.puber.data.api.models.DeviceResponse
 import com.kino.puber.data.api.models.DeviceResponseModel
 import com.kino.puber.data.api.models.MyShowsCheckResult
 import com.kino.puber.data.api.models.SettingsResponse
+import com.kino.puber.data.preferences.BookmarkPreferencesRepository
 import com.kino.puber.data.preferences.ContentPreferences
 import com.kino.puber.data.preferences.NavigationPreferencesRepository
 import com.kino.puber.data.repository.PlayerPreferencesRepository
@@ -60,6 +62,7 @@ class DeviceSettingsVMMirrorNavigationTest {
     private val deviceUiSettingsMapper = mockk<DeviceUiSettingsMapper>(relaxed = true)
     private val playerPreferencesRepository = mockk<PlayerPreferencesRepository>(relaxed = true)
     private val navigationPreferencesRepository = mockk<NavigationPreferencesRepository>(relaxed = true)
+    private val bookmarkPreferencesRepository = BookmarkPreferencesRepository()
     private val apiDomainInteractor = mockk<ApiDomainInteractor>(relaxed = true)
     private val appUpdateInteractor = mockk<IAppUpdateInteractor>(relaxed = true)
     private val myShowsSyncInteractor = mockk<IMyShowsSyncInteractor>(relaxed = true)
@@ -299,6 +302,20 @@ class DeviceSettingsVMMirrorNavigationTest {
         verify { myShowsSyncInteractor.reportPairingResult(isConnected = true) }
     }
 
+    @Test
+    fun changeBookmarkMode_persistsAndUpdatesLoadedSettingsImmediately() {
+        stubSuccessfulDeviceLoad()
+        val vm = createVM()
+        vm.testOnStart()
+        mainDispatcher.dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onAction(DeviceSettingsActions.ChangeBookmarkMode(BookmarkMode.Extended))
+
+        val state = vm.testStateValue.state as DeviceSettingsState.Success
+        assertEquals(BookmarkMode.Extended, state.bookmarkMode)
+        assertEquals(BookmarkMode.Extended, bookmarkPreferencesRepository.mode.value)
+    }
+
     private fun stubSuccessfulDeviceLoad() {
         val settings = mockk<SettingsResponse>()
         val device = DeviceResponseModel(
@@ -351,6 +368,7 @@ class DeviceSettingsVMMirrorNavigationTest {
             deviceUiSettingsMapper = deviceUiSettingsMapper,
             playerPreferencesRepository = playerPreferencesRepository,
             navigationPreferencesRepository = navigationPreferencesRepository,
+            bookmarkPreferencesRepository = bookmarkPreferencesRepository,
             apiDomainInteractor = apiDomainInteractor,
             appUpdateInteractor = appUpdateInteractor,
             myShowsSyncInteractor = myShowsSyncInteractor,

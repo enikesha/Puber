@@ -1,5 +1,6 @@
 package com.kino.puber.ui.feature.device.settings.model
 
+import com.kino.puber.core.model.BookmarkMode
 import com.kino.puber.core.model.NavigationMode
 import com.kino.puber.core.ui.uikit.model.UIAction
 import com.kino.puber.domain.interactor.device.DeviceSettingType
@@ -22,6 +23,7 @@ internal sealed class DeviceSettingsActions : UIAction {
     data class ChangeTrackPreferenceScope(val scope: TrackPreferenceScope) : DeviceSettingsActions()
     data object ToggleBluetoothSyncControls : DeviceSettingsActions()
     data class ChangeNavigationMode(val mode: NavigationMode) : DeviceSettingsActions()
+    data class ChangeBookmarkMode(val mode: BookmarkMode) : DeviceSettingsActions()
     data object ToggleCartoonsTab : DeviceSettingsActions()
     data object ToggleAnimeTab : DeviceSettingsActions()
     data object ToggleShowAnime : DeviceSettingsActions()
